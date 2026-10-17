@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitoring Pickup Instan</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0d2238;--navy2:#17375a;--ink:#10202f;--mut:#61758a;--bg:#e6ecf3;--line:#d3dde8;--acc:#0f9d58;--accd:#0a6e3d}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Manrope',Arial,sans-serif;color:var(--ink);
+ background:radial-gradient(1200px 500px at 15% -10%,#f7fafd 0,transparent 60%),var(--bg)}
+svg.def{position:absolute;width:0;height:0}
+header{background:linear-gradient(160deg,var(--navy2),var(--navy));color:#fff;padding:26px 32px 0;
+ box-shadow:0 14px 30px -10px rgba(13,34,56,.6)}
+.top{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}
+.topr{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.vol{display:flex;align-items:center;gap:8px;padding:5px 12px 5px 5px;border-radius:14px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16)}
+.vbtn{width:36px;height:36px;flex:none;border:0;border-radius:10px;cursor:pointer;display:grid;place-items:center;
+ background:linear-gradient(145deg,#f0b83a,#b27a0c);
+ box-shadow:0 1px 0 rgba(255,255,255,.55) inset,0 -3px 0 rgba(0,0,0,.2) inset,0 5px 8px -3px rgba(0,0,0,.6);transition:transform .1s,filter .15s}
+.vbtn:active{transform:translateY(2px)}
+.vbtn.off{background:linear-gradient(145deg,#8a99a9,#586a7b)}
+.vbtn svg{width:20px;height:20px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}
+#volR{width:110px;padding:0;border:0;box-shadow:none;background:transparent;accent-color:#e3b95b;cursor:pointer}
+#volV{font-size:12px;font-weight:800;color:#cfe0f2;min-width:34px;text-align:right}
+@media(max-width:600px){#volR{width:80px}}
+h1{margin:0;font-size:27px;font-weight:800;letter-spacing:-.4px;text-shadow:0 3px 0 rgba(0,0,0,.25)}
+header p{margin:5px 0 0;color:#a9bed3;font-size:14px}
+.stats{display:flex;gap:12px;flex-wrap:wrap;margin:22px 32px 0;position:relative;perspective:900px}
+.stat{flex:1;min-width:130px;background:linear-gradient(180deg,#fff,#eef3f8);border-radius:14px;padding:12px 14px;
+ display:flex;align-items:center;gap:12px;box-shadow:0 1px 0 #fff inset,0 2px 0 #c7d3e0,0 14px 22px -10px rgba(13,34,56,.45);
+ transition:transform .25s}
+.stat:hover{transform:translateY(-4px) rotateX(6deg)}
+.stat b{font-size:24px;line-height:1;display:block}.stat span{font-size:12px;color:var(--mut);font-weight:700}
+.logo{color:#fff;width:42px;height:42px;border-radius:12px;flex:none;display:grid;place-items:center;
+ box-shadow:0 1px 0 rgba(255,255,255,.55) inset,0 -3px 0 rgba(0,0,0,.18) inset,0 6px 10px -3px rgba(0,0,0,.4)}
+.logo svg{width:68%;height:68%;filter:drop-shadow(0 2px 1px rgba(0,0,0,.25))}
+.gojek{background:linear-gradient(145deg,#12c21f,#008a10)}.grab{background:linear-gradient(145deg,#12c862,#00963f)}
+.shopee{background:linear-gradient(145deg,#ff7a4d,#d73a1a)}.bluebird{background:linear-gradient(145deg,#3b82d6,#124a96)}
+.other{background:linear-gradient(145deg,#8a99a9,#586a7b)}.all{background:linear-gradient(145deg,#2b4d73,#0d2238)}
+main{display:grid;grid-template-columns:370px 1fr;gap:22px;padding:24px 32px 40px;align-items:start}
+section{background:linear-gradient(180deg,#fff,#f6f9fc);border-radius:18px;padding:22px;
+ box-shadow:0 1px 0 #fff inset,0 3px 0 #cbd7e3,0 22px 34px -16px rgba(13,34,56,.45)}
+h2{margin:0 0 14px;font-size:17px;font-weight:800}
+label{display:block;font-size:13px;font-weight:700;margin:14px 0 6px;color:#2a3d50}
+input,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:#fff;
+ box-shadow:inset 0 2px 4px rgba(13,34,56,.08)}
+input.lock{background:linear-gradient(180deg,#e9eff5,#dde6ee);color:#3b4f63;font-weight:700;cursor:not-allowed;user-select:none}
+input:focus,textarea:focus,button:focus-visible,select:focus{outline:2px solid var(--acc);outline-offset:2px}
+.file{font-size:13px;padding:8px}
+.prev{height:110px;margin-top:6px;border-radius:8px;display:none;box-shadow:0 6px 10px -4px rgba(0,0,0,.4)}
+.picker{display:grid;grid-template-columns:1fr 1fr;gap:10px;perspective:800px}
+.opt{display:flex;align-items:center;gap:10px;padding:10px;background:linear-gradient(180deg,#fff,#edf2f7);
+ border:1px solid var(--line);border-radius:12px;cursor:pointer;font:inherit;font-weight:700;color:var(--ink);text-align:left;
+ box-shadow:0 3px 0 #c4d1de,0 8px 12px -6px rgba(13,34,56,.3);transition:transform .15s,box-shadow .15s}
+.opt:hover{transform:translateY(-2px) rotateX(5deg)}
+.opt.on{border-color:var(--acc);background:linear-gradient(180deg,#f2fff8,#d9f5e5);
+ box-shadow:0 1px 0 var(--accd),0 0 0 3px rgba(15,157,88,.25);transform:translateY(2px)}
+.opt .logo{width:34px;height:34px;border-radius:10px}
+.btn{font:inherit;font-weight:800;color:#fff;border:0;border-radius:12px;cursor:pointer;
+ background:linear-gradient(180deg,#19b56a,var(--accd));box-shadow:0 5px 0 #065029,0 12px 16px -6px rgba(6,80,41,.6);
+ transition:transform .1s,box-shadow .1s}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 #065029}
+.btn:disabled{opacity:.6;cursor:wait}
+.save{width:100%;margin-top:22px;padding:14px}
+.bar{display:flex;gap:10px;margin-bottom:16px}.bar input{flex:1}
+.bar .btn{padding:0 20px}
+.btn.gray{background:linear-gradient(180deg,#eef3f8,#cfd9e4);color:var(--ink);box-shadow:0 5px 0 #a9b8c8,0 10px 14px -6px rgba(13,34,56,.3)}
+.wrap{overflow-x:auto;border-radius:12px;box-shadow:0 0 0 1px var(--line)}
+table{width:100%;border-collapse:collapse;font-size:calc(14px*var(--z,1))}
+th{background:linear-gradient(180deg,var(--navy2),var(--navy));color:#fff;text-align:left;padding:.86em;white-space:nowrap;font-weight:700}
+td{padding:.72em .86em;border-bottom:1px solid #e3eaf1;vertical-align:middle;background:#fff}
+td.no,th.no{text-align:center;width:3.2em;font-weight:800}
+td.no{color:var(--mut)}
+tr:nth-child(even) td{background:#f7fafc}tr:hover td{background:#eaf6ef}
+.jasa{display:flex;align-items:center;gap:.65em;font-weight:700}.jasa .logo{width:2.15em;height:2.15em;border-radius:.65em}
+a.ph{display:inline-block;padding:5px 11px;border-radius:8px;color:var(--accd);font-weight:700;text-decoration:none;
+ background:linear-gradient(180deg,#f2fff8,#d3f0e0);box-shadow:0 2px 0 #aad6bd}
+.empty{padding:30px;text-align:center;color:var(--mut)}
+#msg.warn{background:#b3261e}
+#msg{max-width:min(92vw,520px);text-align:center;position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 22px;
+ border-radius:12px;display:none;z-index:99;box-shadow:0 14px 24px -8px rgba(0,0,0,.6)}
+.tabs{display:flex;gap:8px;margin-top:22px}
+.tab{font:inherit;font-weight:800;color:#a9bed3;background:transparent;border:0;padding:12px 22px;border-radius:12px 12px 0 0;cursor:pointer;display:flex;align-items:center;gap:8px}
+.tab svg{width:15px;height:15px}.tab.on{background:var(--bg);color:var(--navy)}
+.solo{grid-template-columns:minmax(0,560px);justify-content:center}
+.hide{display:none!important}
+.cambtn{width:100%;padding:12px}
+.camwrap{position:fixed;inset:0;background:rgba(5,15,25,.85);display:grid;place-items:center;z-index:50;padding:12px}
+.cambox{background:var(--navy);padding:14px;border-radius:18px;width:min(94vw,720px);box-shadow:0 24px 40px -10px #000}
+.cambox video{width:100%;max-height:70vh;border-radius:12px;background:#000;display:block}
+.stat{cursor:pointer}.stat.on{box-shadow:0 0 0 3px var(--acc),0 14px 22px -10px rgba(13,34,56,.45);transform:translateY(-3px)}
+.del{font:inherit;font-weight:800;font-size:.86em;color:#fff;border:0;border-radius:8px;padding:6px 12px;cursor:pointer;background:linear-gradient(180deg,#e5484d,#b3261e);box-shadow:0 3px 0 #7d1912}
+.del:active{transform:translateY(2px);box-shadow:0 1px 0 #7d1912}.del:disabled{opacity:.6}
+.lbox{position:relative;width:min(96vw,720px);border-radius:18px;overflow:hidden;background:#000;box-shadow:0 24px 40px -10px #000}
+.lbox video{width:100%;display:block;max-height:80vh;object-fit:cover}
+.lframe{position:absolute;left:5%;right:5%;top:10%;height:80%;border:2px solid rgba(255,255,255,.9);border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.38);pointer-events:none}
+.lframe i{position:absolute;left:8px;right:8px;top:50%;height:2px;background:#ff3b30;box-shadow:0 0 10px #ff3b30;animation:laser 1.6s ease-in-out infinite alternate}
+@keyframes laser{from{top:10%}to{top:90%}}
+/* Scan ringan: overlay & animasi berat dimatikan supaya video tetap lancar */
+.lframe{box-shadow:none!important;border-color:rgba(255,255,255,.95)}
+.lframe i{animation:none!important;top:50%}
+.ltip{position:absolute;left:10px;right:10px;top:10px;padding:10px 14px;border-radius:12px;background:rgba(13,34,56,.88);color:#fff;font-weight:700;font-size:14px;text-align:center}
+.ltip.warn{background:rgba(179,38,30,.94)}.ltip.ok{background:rgba(15,157,88,.96)}
+.lbar{position:absolute;left:10px;right:10px;bottom:10px;display:flex;gap:8px}.lbar .btn{flex:1;padding:12px 6px;font-size:13px}
+.lzoom{position:absolute;left:16px;right:16px;bottom:72px;width:auto;padding:0;border:0;box-shadow:none;background:transparent;accent-color:#0f9d58}
+.lok{position:absolute;inset:0;display:grid;place-items:center;background:rgba(15,157,88,.9);color:#fff;font-size:22px;font-weight:800;text-align:center;padding:20px;animation:fadeUp .3s both}
+.ic{width:24px;height:24px;display:block;margin:auto}
+.addb{display:block;margin-top:10px;font:inherit;font-weight:800;font-size:12px;color:var(--accd);background:linear-gradient(180deg,#f2fff8,#d3f0e0);border:0;border-radius:8px;padding:6px 12px;cursor:pointer;box-shadow:0 3px 0 #aad6bd}
+.addb:active{transform:translateY(2px);box-shadow:0 1px 0 #aad6bd}
+section{min-width:0}.wrap{max-width:100%}body{overflow-x:hidden}
+.nb{margin:-26px -32px 16px;background:rgba(0,0,0,.3);overflow:hidden;padding:10px 0 12px;perspective:600px;border-bottom:1px solid rgba(255,255,255,.12)}
+.nbw{transform:perspective(600px) rotateX(4deg);transform-origin:50% 100%}
+.nbT{display:inline-block;padding-left:100%;white-space:nowrap;font-weight:800;font-size:15px;letter-spacing:.6px;color:#ffe6ea;
+ text-shadow:0 1px 0 #d98e9a,0 2px 0 #b86472,0 3px 0 #8f4553,0 8px 8px rgba(0,0,0,.32);
+ animation:nbmove 30s linear infinite;will-change:transform}
+.nb:hover .nbT{animation-play-state:paused}
+@keyframes nbmove{from{transform:translate3d(0,0,0)}to{transform:translate3d(-100%,0,0)}}
+@media(prefers-reduced-motion:reduce){.nbT{animation:none;padding-left:0;white-space:normal}}
+.drange{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.drange label{display:inline;margin:0}.drange span{font-weight:800;color:var(--mut)}
+.drange input{width:auto;flex:1;min-width:140px;max-width:210px}
+.hint{color:#cfe0f2;font-size:13px;text-align:center;margin:10px 0 0}
+.camact{display:flex;gap:10px;margin-top:14px}.camact .btn{flex:1;padding:13px}
+.lockbox{text-align:center}.lockbox .logo{margin:0 auto 12px;width:54px;height:54px}
+.welcome{display:inline-block;margin:0 0 10px;font-size:36px;font-weight:800;letter-spacing:1.5px;color:#3d8fe0;
+ transform:perspective(520px) rotateX(14deg);
+ text-shadow:0 1px 0 #2f78c2,0 2px 0 #28689f,0 3px 0 #215a8c,0 4px 0 #1b4c79,0 5px 0 #153f68,0 6px 0 #103256,0 7px 0 #0d2a49,0 14px 14px rgba(13,34,56,.5)}
+.lockbox label{text-align:left}
+input.pop{border:0;padding:15px 16px;font-weight:700;font-size:15px;background:linear-gradient(180deg,#fff,#e8eef5);
+ box-shadow:0 1px 0 #fff inset,0 5px 0 #aebdcd,0 14px 20px -8px rgba(13,34,56,.5);transition:transform .12s,box-shadow .12s}
+input.pop:focus{transform:translateY(3px);box-shadow:0 1px 0 #fff inset,0 2px 0 #aebdcd,0 0 0 3px rgba(15,157,88,.35)}
+.err{color:#c0392b;font-size:13px;font-weight:700;min-height:18px;margin-top:8px}
+#splash{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:20px;color:var(--ink);overflow:auto;
+ background:radial-gradient(720px 440px at 50% 26%,rgba(255,255,255,.95),transparent 70%),linear-gradient(160deg,#fff7f9,#ffe6ec 55%,#ffd5df);
+ transition:opacity .5s,visibility .5s}
+#splash.out{opacity:0;visibility:hidden}
+.sbox{text-align:center;width:min(92vw,400px)}
+.azlogo{display:inline-block;font-weight:800;font-size:46px;letter-spacing:-1px;line-height:1;padding:10px 28px 14px;border-radius:12px;
+ background:linear-gradient(180deg,#f2392e,#c4160d);
+ box-shadow:0 1px 0 rgba(255,255,255,.45) inset,0 -5px 0 rgba(0,0,0,.2) inset,0 16px 26px -6px rgba(0,0,0,.65);
+ animation:pop .9s cubic-bezier(.2,1.4,.4,1) both,glow 2.4s 1s ease-in-out infinite alternate}
+.stitle{margin:24px 0 4px;font-size:clamp(24px,7vw,34px);font-weight:800;letter-spacing:3px;color:#e0261b;display:flex;justify-content:center;flex-wrap:wrap;perspective:600px}
+.stitle span{display:inline-block;opacity:0;animation:rise .7s cubic-bezier(.2,.9,.3,1.2) forwards;
+ text-shadow:0 1px 0 #b3140c,0 2px 0 #a0120a,0 3px 0 #8f0f09,0 4px 0 #7d0c07,0 11px 12px rgba(120,10,10,.35)}
+.stitle .sp{width:16px}
+.ssub{color:#9a4a58;font-weight:700;letter-spacing:4px;font-size:13px;text-transform:uppercase;margin-bottom:26px;animation:fadeUp .8s 1.3s both}
+.sbtns{animation:fadeUp .8s 1.7s both}
+.sbtn{width:100%;padding:15px;margin-top:12px;font-size:15px}
+#splash label{color:#7a2a38;text-align:left}
+#splash .serr{color:#c0261b;text-align:left}
+.lg{padding:8px 18px;font-size:13px}
+.nrow{display:flex;gap:10px}.nrow input{flex:1}.okb{flex:none;padding:0 22px}
+#splash input.lock{background:linear-gradient(180deg,#e3f6ea,#c6e8d3);color:#0a5a30;cursor:default;user-select:none}
+#splash .btn.gray{border:1px solid #f0c9d1;box-shadow:0 5px 0 #dfb0bb,0 10px 14px -6px rgba(160,40,70,.35)}
+#splash input.pop{box-shadow:0 1px 0 #fff inset,0 5px 0 #e6bcc6,0 14px 20px -8px rgba(160,40,70,.35)}
+#splash input.pop:focus{transform:translateY(3px);box-shadow:0 1px 0 #fff inset,0 2px 0 #e6bcc6,0 0 0 3px rgba(224,38,27,.3)}
+.slang{display:flex;justify-content:center;gap:8px;margin-top:20px}
+.slang button{font:inherit;font-weight:800;font-size:12px;border:1px solid #f0c9d1;background:#fff;color:#9a4a58;border-radius:20px;padding:5px 14px;cursor:pointer}
+.slang button.on{background:#e0261b;color:#fff;border-color:#e0261b}
+@keyframes rise{from{opacity:0;transform:translateY(30px) rotateX(-80deg)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.3) rotate(-8deg)}to{opacity:1;transform:none}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes glow{from{box-shadow:0 1px 0 rgba(255,255,255,.45) inset,0 -5px 0 rgba(0,0,0,.2) inset,0 16px 26px -6px rgba(0,0,0,.65),0 0 0 rgba(242,57,46,0)}
+ to{box-shadow:0 1px 0 rgba(255,255,255,.45) inset,0 -5px 0 rgba(0,0,0,.2) inset,0 16px 26px -6px rgba(0,0,0,.65),0 0 36px rgba(242,57,46,.7)}}
+@media(prefers-reduced-motion:reduce){.stitle span,.azlogo,.ssub,.sbtns{animation:none!important;opacity:1!important}}
+@media(max-width:900px){.nb{margin:-20px -16px 14px}main{grid-template-columns:1fr;padding:16px}header{padding:20px 16px 0}.stats{margin:18px 16px 0}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== Layout monitoring: halaman terkunci setinggi layar, hanya tabel yang scroll ===== */
+body:has(#vMon:not(.hide) #monBody:not(.hide)){height:100vh;height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+body:has(#vMon:not(.hide) #monBody:not(.hide)) header{flex:none}
+body:has(#vMon:not(.hide) #monBody:not(.hide)) #vMon{flex:1;min-height:0;display:flex;flex-direction:column}
+body:has(#vMon:not(.hide) #monBody:not(.hide)) #monBody{flex:1;min-height:0;display:flex;flex-direction:column}
+body:has(#vMon:not(.hide) #monBody:not(.hide)) .stats{flex:none}
+body:has(#vMon:not(.hide) #monBody:not(.hide)) #monBody>main{flex:1;min-height:0;display:flex;align-items:stretch;padding-bottom:20px}
+body:has(#vMon:not(.hide) #monBody:not(.hide)) #monBody>main>section{flex:1;min-height:0;display:flex;flex-direction:column}
+body:has(#vMon:not(.hide) #monBody:not(.hide)) .wrap{flex:1;min-height:0;overflow:auto}
+body:has(#vMon:not(.hide) #monBody:not(.hide)) thead th{position:sticky;top:0;z-index:2}
+
+/* ===== Zoom tabel + layar penuh ===== */
+.shd{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.shd h2{margin:0}
+.zbar{display:flex;align-items:center;gap:6px}
+.zbar .smb{margin:0;min-width:38px;padding:8px 11px;font-size:15px;line-height:1}
+.zbar #zVal{font-size:12px;min-width:56px}
+#monSec.fs{position:fixed;inset:0;z-index:40;margin:0;border-radius:0;padding:16px 18px;display:flex;flex-direction:column;
+ background:linear-gradient(180deg,#fff,#f6f9fc)}
+#monSec.fs .wrap{flex:1;min-height:0;overflow:auto}
+#monSec.fs thead th{position:sticky;top:0;z-index:2}
+
+/* ===== Mode IA ===== */
+.aibox{border:1px solid #d9d0ff;background:linear-gradient(180deg,#faf8ff,#efe9ff);border-radius:14px;padding:12px;margin:0 0 6px;box-shadow:0 3px 0 #cfc4f5}
+.aihd{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.aihd b{display:block;font-size:14px}.aihd small{display:block;color:var(--mut);font-size:12px;font-weight:600;margin-top:2px}
+.btn.ai{background:linear-gradient(180deg,#8a6bff,#5a3dc4);box-shadow:0 5px 0 #3b2a8a,0 12px 16px -6px rgba(59,42,138,.6)}
+.btn.ai:active{box-shadow:0 1px 0 #3b2a8a}
+.aistat{font-size:13px;font-weight:700;margin-top:8px;color:#4a2fb0}.aistat.warn{color:#b3261e}
+.aifill{outline:2px solid #7a5cff!important;background:#f4f0ff!important}
+
+.nrow .okb.sc{padding:0 14px}
+
+/* ===== Antrean simpan di latar belakang ===== */
+#qbar{position:fixed;left:50%;transform:translateX(-50%);bottom:76px;width:min(94vw,520px);z-index:98;display:flex;flex-direction:column;gap:8px}
+#qbar:empty{display:none}
+.qi{background:var(--navy);color:#fff;border-radius:12px;padding:10px 14px;font-size:13px;font-weight:700;box-shadow:0 14px 24px -8px rgba(0,0,0,.6)}
+.qi.err{background:#b3261e}
+.qi .smb{margin:8px 6px 0 0}
+.qi.sv:before{content:'';display:inline-block;width:12px;height:12px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;margin-right:8px;vertical-align:-2px;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== Menu samping: muncul hanya saat tanda panah diklik ===== */
+#sideTab{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:45;width:20px;height:64px;border:0;border-radius:0 10px 10px 0;background:var(--navy);color:#fff;cursor:pointer;opacity:.75;font-weight:800}
+#side{position:fixed;left:0;top:0;bottom:0;width:260px;max-width:80vw;z-index:46;padding:22px 14px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;
+ background:linear-gradient(180deg,#1b3a5e,#0d2238 70%);border-right:1px solid rgba(255,255,255,.1);color:#fff;box-shadow:14px 0 30px -10px rgba(13,34,56,.6);
+ transform:translateX(-105%);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+#side.open{transform:none}
+.sideT{text-align:center;font-weight:800;letter-spacing:4px;color:#e3b95b;font-size:13px;margin:2px 0 6px;
+ text-shadow:0 1px 0 #7a5b17,0 2px 0 #4d3a0c,0 4px 6px rgba(0,0,0,.5)}
+.sideI{font:inherit;font-weight:700;font-size:14px;color:#fff;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;cursor:pointer;
+ text-align:left;display:flex;align-items:center;gap:12px;
+ background:linear-gradient(180deg,#2b4b75,#16304f);
+ box-shadow:0 1px 0 rgba(255,255,255,.2) inset,0 4px 0 #091a2c,0 10px 14px -6px rgba(0,0,0,.65);
+ transition:transform .12s,box-shadow .12s,filter .12s}
+.sideI:hover{filter:brightness(1.15);transform:translateY(-1px)}
+.sideI:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(255,255,255,.2) inset,0 1px 0 #091a2c}
+.sideI .ml{flex:1}
+.sideI .chev{font-style:normal;font-size:20px;line-height:1;color:#a9bed3;font-weight:800}
+.mi{width:36px;height:36px;border-radius:10px;flex:none;display:grid;place-items:center;
+ box-shadow:0 1px 0 rgba(255,255,255,.55) inset,0 -3px 0 rgba(0,0,0,.2) inset,0 5px 8px -3px rgba(0,0,0,.6)}
+.mi svg{width:20px;height:20px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}
+.mi.blue{background:linear-gradient(145deg,#4a9bf0,#1f5fb8)}
+.mi.green{background:linear-gradient(145deg,#2fd07a,#0f8a4a)}
+.mi.gold{background:linear-gradient(145deg,#f0b83a,#b27a0c)}
+.mi.purple{background:linear-gradient(145deg,#9a7bff,#5a3dc4)}
+.mi.red{background:linear-gradient(145deg,#ff6a6f,#c4262d)}
+.mi.teal{background:linear-gradient(145deg,#2fd0c4,#0e8a85)}
+.sideI.out{margin-top:auto;justify-content:center;gap:10px;
+ background:linear-gradient(180deg,#e5484d,#b3261e);box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 4px 0 #6e130e,0 10px 14px -6px rgba(0,0,0,.65)}
+.sideI.out .mi{background:rgba(0,0,0,.25);box-shadow:none;width:32px;height:32px}
+.prof{background:linear-gradient(180deg,#22416a,#14304f);border:1px solid rgba(255,255,255,.14);
+ box-shadow:0 1px 0 rgba(255,255,255,.15) inset,0 3px 0 #091a2c;border-radius:14px;padding:14px;margin-bottom:4px}
+.prof small{display:block;color:#a9bed3;font-weight:700;font-size:11px;letter-spacing:2px}
+.prof b{display:block;font-size:19px;margin:4px 0 2px;word-break:break-word}
+.prof em{font-style:normal;font-size:12px;color:#cfe0f2}
+.badge{display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;background:#0f9d58;color:#fff}
+.badge.p{background:#586a7b}.badge.off{background:#b3261e}
+
+/* ===== Panel menu (User, Create, Pengaturan, Record) ===== */
+#pnl{z-index:55}
+#dlg{z-index:80}
+.pbox{background:linear-gradient(180deg,#fff,#f6f9fc);border-radius:18px;width:min(96vw,820px);max-height:90vh;display:flex;flex-direction:column;
+ box-shadow:0 24px 40px -10px #000;overflow:hidden}
+.phd{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--line)}
+.phd h3{margin:0;font-size:18px;font-weight:800}
+#pBody{padding:16px 20px 20px;overflow:auto}
+.row2{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid #e3eaf1}
+.row2 div small{display:block;color:var(--mut);font-weight:500;font-size:12px;margin-top:2px}
+.row2 b{font-size:14px}
+.row2 input[type=checkbox]{width:24px;height:24px;flex:none;box-shadow:none;accent-color:var(--acc)}
+.row2 input[type=number]{width:110px;flex:none}
+.row2 input[type=text],.row2 input[type=password]{width:240px;flex:none}
+.row2 select{width:190px;flex:none;padding:10px;border:1px solid var(--line);border-radius:10px;font:inherit;background:#fff}
+@media(max-width:600px){.row2{flex-wrap:wrap}.row2 input[type=text],.row2 input[type=password],.row2 select{width:100%}}
+.grp{font-size:12px;font-weight:800;letter-spacing:2px;color:var(--mut);margin:18px 0 2px}
+.lg2{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px;background:#fff}
+.lg2 h4{margin:0 0 8px;font-size:14px}.lg2 h4 span{color:var(--mut);font-weight:600;font-size:12px}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 14px;font-size:13px}
+.kv div small{display:block;color:var(--mut);font-weight:700;font-size:10px;letter-spacing:1px}
+.smb{font:inherit;font-weight:800;font-size:12px;border:0;border-radius:8px;padding:6px 10px;cursor:pointer;background:linear-gradient(180deg,#eef3f8,#cfd9e4);color:var(--ink);box-shadow:0 2px 0 #a9b8c8;margin-right:4px}
+.smb.ok{color:#fff;background:linear-gradient(180deg,#19b56a,var(--accd));box-shadow:0 2px 0 #065029}
+.smb:disabled{opacity:.6;cursor:wait}
+.lgact{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.lgact .smb,.lgact .del{margin:0;padding:8px 14px;font-size:13px}
+.del svg.mic{width:14px;height:14px;vertical-align:-2px}
+.vhint{font-size:12px;color:var(--mut);margin:6px 0 10px}
+.note{background:#fff7e0;border:1px solid #f0dd9c;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:6px}
+#mbanner{background:#b3261e;color:#fff;font-weight:700;text-align:center;padding:10px 14px;border-radius:12px;margin:0 0 10px}
+
+/* ===== Tampilan scanner seperti CamScanner: bingkai kotak, sudut putih, garis hijau bergerak, senter ===== */
+.lbox{width:min(94vw,520px);aspect-ratio:3/4;max-height:90vh;background:#000}
+.lbox video{position:absolute;inset:0;width:100%;height:100%;max-height:none;object-fit:cover}
+.lmask{position:absolute;inset:0;background:rgba(0,0,0,.5);pointer-events:none;clip-path:polygon(evenodd,0 0,100% 0,100% 100%,0 100%,0 0,14% 23%,86% 23%,86% 77%,14% 77%,14% 23%)}
+.lframe{left:14%;right:14%;top:23%;bottom:23%;height:auto;border:0!important;border-radius:0;overflow:hidden;box-shadow:none!important}
+.lframe b{position:absolute;width:28px;height:28px;border:3px solid #fff;border-radius:3px}
+.lframe b:nth-of-type(1){left:0;top:0;border-right:0;border-bottom:0}
+.lframe b:nth-of-type(2){right:0;top:0;border-left:0;border-bottom:0}
+.lframe b:nth-of-type(3){left:0;bottom:0;border-right:0;border-top:0}
+.lframe b:nth-of-type(4){right:0;bottom:0;border-left:0;border-top:0}
+.lscanline{position:absolute;left:0;right:0;top:0;height:100%;background:linear-gradient(to top,rgba(25,224,160,.30),transparent 26%);border-bottom:3px solid #19e0a0;animation:lscan 2s ease-in-out infinite alternate;will-change:transform}
+@keyframes lscan{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+.ltorch{position:absolute;left:50%;transform:translateX(-50%);bottom:116px;border:0;border-radius:22px;padding:10px 20px;font:inherit;font-weight:700;font-size:13px;color:#fff;background:rgba(40,40,40,.72);cursor:pointer;white-space:nowrap}
+.ltorch.on{background:rgba(25,224,160,.85);color:#06281c}
+@media(prefers-reduced-motion:reduce){.lscanline{animation:none;transform:translateY(-50%)}}
+</style>
+</head>
+<body>
+<!-- Emblem logo sederhana (vektor), warna mengikuti identitas masing-masing brand -->
+<svg class="def" aria-hidden="true"><defs>
+ <symbol id="i-gojek" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#fff" stroke-width="3.2"/><circle cx="12" cy="12" r="3.4" fill="#fff"/></symbol>
+ <symbol id="i-grab" viewBox="0 0 24 24"><path fill="#fff" d="M12 3a9 9 0 1 0 9 9h-8v3h4.6A6 6 0 1 1 12 6c1.5 0 2.9.6 4 1.6l2.1-2.1A9 9 0 0 0 12 3z"/></symbol>
+ <symbol id="i-shopee" viewBox="0 0 24 24"><path fill="#fff" d="M12 2a4 4 0 0 0-4 4H4.5L3.6 21.2A1.5 1.5 0 0 0 5.1 23h13.8a1.5 1.5 0 0 0 1.5-1.8L19.5 6H16a4 4 0 0 0-4-4zm0 2a2 2 0 0 1 2 2h-4a2 2 0 0 1 2-2z"/><path fill="#e8431f" d="M13.8 14.3c-.3-.8-1.1-1.2-2-1.2-.9 0-1.6.5-1.6 1.2 0 1.8 4 1 4 3.2 0 1.1-1.1 1.9-2.4 1.9-1.1 0-2.1-.5-2.5-1.5l1-.5c.3.7.9 1 1.5 1 .7 0 1.2-.4 1.2-.9 0-1.5-4-.8-4-3.2 0-1.2 1.1-2.1 2.7-2.1 1.2 0 2.2.6 2.7 1.6z"/></symbol>
+ <symbol id="i-bluebird" viewBox="0 0 24 24"><path fill="#fff" d="M21 5.5c-.7.4-1.4.6-2.2.7.8-.5 1.4-1.2 1.7-2.1-.8.5-1.6.8-2.5 1A3.8 3.8 0 0 0 11.5 8c0 .3 0 .6.1.9C8.4 8.7 5.600 7.200 3.700 4.900c-.3.600-.5 1.200-.5 1.900 0 1.300.7 2.500 1.700 3.200-.6 0-1.200-.2-1.700-.5 0 1.800 1.300 3.400 3.100 3.800-.6.200-1.200.2-1.700.1.500 1.500 1.900 2.600 3.600 2.700A7.700 7.700 0 0 1 3 17.700 10.900 10.900 0 0 0 8.900 19.400c7.100 0 11-5.900 11-11v-.5c.7-.5 1.400-1.200 1.900-1.900z"/></symbol>
+ <symbol id="i-other" viewBox="0 0 24 24"><path fill="#fff" d="M3 14l2-6h10l3 3h3v5h-2a3 3 0 0 1-6 0H9a3 3 0 0 1-6 0zm4 3.200a1.200 1.200 0 1 0 0 .1zm9 0a1.200 1.200 0 1 0 0 .1z"/></symbol>
+ <symbol id="i-cam" viewBox="0 0 24 24"><path fill="currentColor" d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.200L15 3H9zm3 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></symbol>
+ <symbol id="i-scan" viewBox="0 0 24 24"><path fill="currentColor" d="M3 3h5v2H5v3H3zM16 3h5v5h-2V5h-3zM3 16h2v3h3v2H3zM19 16h2v5h-5v-2h3zM6 8h1.5v8H6zM9 8h1v8H9zM11.5 8H13v8h-1.5zM14 8h1v8h-1zM16 8h2v8h-2z"/></symbol>
+ <symbol id="i-lock" viewBox="0 0 24 24"><path fill="currentColor" d="M17 9V7a5 5 0 0 0-10 0v2H5v12h14V9zM9 7a3 3 0 0 1 6 0v2H9zm3 6a2 2 0 0 1 1 3.700V18h-2v-1.300A2 2 0 0 1 12 13z"/></symbol>
+ <symbol id="i-vol" viewBox="0 0 24 24"><path fill="#fff" d="M3 9v6h4l5 4V5L7 9H3zm13.500 3a4.500 4.500 0 0 0-2.500-4v8a4.500 4.500 0 0 0 2.500-4zM14 3.200v2.100a7 7 0 0 1 0 13.400v2.100a9 9 0 0 0 0-17.600z"/></symbol>
+ <symbol id="i-mute" viewBox="0 0 24 24"><path fill="#fff" d="M3 9v6h4l5 4V5L7 9H3zm13.600 3 2.400-2.400-1.400-1.400-2.400 2.400-2.400-2.400-1.400 1.400 2.400 2.400-2.400 2.400 1.400 1.400 2.400-2.400 2.400 2.400 1.400-1.400z"/></symbol>
+ <symbol id="i-all" viewBox="0 0 24 24"><path fill="#fff" d="M4 5h16v3H4zm0 5.500h16v3H4zM4 16h16v3H4z"/></symbol>
+ <!-- Ikon menu samping -->
+ <symbol id="m-users" viewBox="0 0 24 24"><path fill="#fff" d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM9 13c-3.300 0-6 1.700-6 4v2h12v-2c0-2.300-2.700-4-6-4zm8 0c-.5 0-1 .1-1.500.2 1.500 1 2.500 2.400 2.500 3.800v2h4v-2c0-2.200-2.300-4-5-4z"/></symbol>
+ <symbol id="m-adduser" viewBox="0 0 24 24"><path fill="#fff" d="M10 12a4.500 4.500 0 1 0 0-9 4.500 4.500 0 0 0 0 9zm0 2c-3.500 0-7 1.700-7 4v2h14v-2c0-2.300-3.500-4-7-4zm9-6V5h-2v3h-3v2h3v3h2v-3h3V8z"/></symbol>
+ <symbol id="m-gear" viewBox="0 0 24 24"><path fill="#fff" d="M19.400 13a7.500 7.500 0 0 0 0-2l2.100-1.600-2-3.500-2.500 1a7.500 7.500 0 0 0-1.700-1L15 3.200h-4l-.4 2.700c-.6.300-1.200.600-1.700 1l-2.500-1-2 3.500L6.600 11a7.500 7.500 0 0 0 0 2l-2.100 1.600 2 3.500 2.500-1c.5.400 1.100.7 1.700 1l.4 2.700h4l.4-2.700c.6-.3 1.200-.6 1.700-1l2.500 1 2-3.500zM13 15.500a3.500 3.500 0 1 1 0-7 3.500 3.500 0 0 1 0 7z" transform="translate(-1 0)"/></symbol>
+ <symbol id="m-trash" viewBox="0 0 24 24"><path fill="#fff" d="M9 3h6l1 2h4v2H4V5h4zM5 9h14l-1 12H6z"/></symbol>
+ <symbol id="m-key" viewBox="0 0 24 24"><path fill="#fff" d="M8 8a5 5 0 1 1 4.600 5H11v2H9v2H6v-3l5.100-5.100A5 5 0 0 1 8 8zm6-1.500a1.500 1.500 0 1 0 0 3 1.500 1.500 0 0 0 0-3z" transform="translate(1 0)"/></symbol>
+ <symbol id="m-out" viewBox="0 0 24 24"><path fill="#fff" d="M4 3h9v2H6v14h7v2H4zm12 4 5 5-5 5-1.400-1.400L17.200 13H9v-2h8.200l-2.600-2.600z"/></symbol>
+ <symbol id="m-ai" viewBox="0 0 24 24"><path fill="#fff" d="M10 2l2 6 6 2-6 2-2 6-2-6-6-2 6-2zm9 11 1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/></symbol>
+ <symbol id="m-lang" viewBox="0 0 24 24"><path fill="#fff" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.900 9h-3a15 15 0 0 0-1.200-5A8 8 0 0 1 18.900 11zM12 4.100c.8 1 1.600 3.100 1.900 6.900h-3.800C10.400 7.200 11.200 5.100 12 4.100zM9.300 6a15 15 0 0 0-1.200 5h-3A8 8 0 0 1 9.300 6zM5.100 13h3a15 15 0 0 0 1.200 5A8 8 0 0 1 5.100 13zM12 19.900c-.8-1-1.600-3.100-1.900-6.900h3.800c-.3 3.800-1.100 5.900-1.900 6.900zM14.700 18a15 15 0 0 0 1.200-5h3a8 8 0 0 1-4.200 5z"/></symbol>
+</defs></svg>
+
+<div id="splash"><div class="sbox">
+  <div class="azlogo">azko</div>
+  <div class="stitle" id="stitle" aria-label="AZ·KO SIDOARJO"></div>
+  <div class="ssub" data-i="ssub">Pickup Instan</div>
+  <div id="sMenu" class="sbtns">
+    <button class="btn sbtn" id="goUser" type="button" data-i="goUser">Masuk sebagai User</button>
+    <button class="btn gray sbtn" id="goTamu" type="button" data-i="goTamu">Masuk sebagai Tamu</button>
+  </div>
+  <div id="sLogin" class="hide">
+    <label for="snip">NIP</label>
+    <div class="nrow"><input id="snip" class="pop" autocomplete="off" inputmode="numeric" placeholder="Masukkan NIP" data-ip="pNip"><button class="btn okb" id="sOk" type="button">OK</button></div>
+    <div id="sNama" class="hide"><label for="snama" data-i="cName">NAMA</label><input id="snama" class="pop lock" readonly tabindex="-1" aria-readonly="true"></div>
+    <div id="sPassBox" class="hide"><label for="spass">PASS</label><input type="password" id="spass" class="pop" autocomplete="off" placeholder="Masukkan PASS" data-ip="pPass"></div>
+    <div class="err serr" id="sErr"></div>
+    <button class="btn sbtn hide" id="sGo" type="button" data-i="in">Masuk</button>
+    <button class="btn gray sbtn" id="sBack" type="button" data-i="back">Kembali</button>
+  </div>
+  <div class="slang" aria-label="Language"><button type="button" data-lg="id">Indonesia</button><button type="button" data-lg="en">English</button></div>
+</div></div>
+
+<header>
+  <div class="nb hide" id="nb"><div class="nbw"><span class="nbT" id="nbT">NB: JIKA ADA KESALAHAN DAN KETIDAK SESUAIAN DENGAN DATA YANG ADA DISINI MOHON UNTUK SEGERA MENGHUBUNGI TEAM CS YA GAES, TERIMA KASIH.</span></div></div>
+  <div class="top"><h1 id="ttl">PICKUP INSTAN</h1>
+    <div class="topr">
+      <div class="vol hide" id="vol">
+        <button type="button" class="vbtn" id="volBtn" data-ia="volT" aria-label="Suara" title="Suara"><svg><use id="volIc" href="#i-vol"/></svg></button>
+        <input type="range" id="volR" min="0" max="100" step="5" value="80" data-ia="volR" aria-label="Volume suara" title="Volume suara">
+        <span id="volV">80%</span>
+      </div>
+      <button class="btn gray lg" id="logout" type="button" data-i="out">Keluar</button>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button class="tab on" id="tIn" role="tab" data-i="tIn">Input Data</button>
+    <button class="tab hide" id="tMon" role="tab"><svg><use href="#i-lock"/></svg>MONITORING PIC / CS</button>
+  </nav>
+</header>
+
+<div id="vIn"><main class="solo">
+  <section>
+    <div id="mbanner" class="hide"></div>
+    <h2 data-i="inH">Input data baru</h2>
+
+    <!-- MODE IA: tampil hanya jika admin mengaktifkan + kunci API sudah diisi -->
+    <div class="aibox hide" id="aiBox">
+      <div class="aihd"><span class="mi purple"><svg><use href="#m-ai"/></svg></span>
+        <div><b data-i="aiT">Mode IA</b><small data-i="aiD">Foto label/resi/layar driver, lalu IA mengisi data otomatis. Periksa kembali sebelum submit.</small></div></div>
+      <button type="button" class="btn ai cambtn" id="aiBtn" data-i="aiBtn">Isi otomatis dengan IA</button>
+      <input type="file" id="aiF" accept="image/*" capture="environment" class="hide">
+      <div class="aistat" id="aiStat" role="status"></div>
+    </div>
+
+    <label for="tgl" data-i="lTgl">TANGGAL</label><input id="tgl" class="lock" readonly tabindex="-1" aria-readonly="true">
+    <label for="jam" data-i="lJam">JAM</label><input id="jam" class="lock" readonly tabindex="-1" aria-readonly="true">
+    <label data-i="lJasa">JASA</label>
+    <div class="picker" id="picker" role="radiogroup" aria-label="Pilih jasa"></div>
+    <label for="drv" data-i="lDrv">NAMA DRIVER</label><input id="drv" placeholder="Nama driver" data-ip="pDrv">
+    <label for="tlp" data-i="lTlp">NO TLP DRIVER</label><input id="tlp" type="tel" inputmode="tel" autocomplete="off" placeholder="08xxxxxxxxxx">
+    <label for="inv1" data-i="lI1">NO INVOICE 1</label><div class="nrow"><input id="inv1" placeholder="Ketik atau scan barcode" data-ip="pScan" autocomplete="off"><button type="button" class="btn okb sc" data-t="inv1" aria-label="Scan barcode invoice" title="Scan"><svg class="ic"><use href="#i-scan"/></svg></button></div>
+    <div id="iv2" class="hide"><label for="inv2" data-i="lI2o">NO INVOICE 2 (opsional)</label><div class="nrow"><input id="inv2" placeholder="Ketik atau scan barcode" data-ip="pScan" autocomplete="off"><button type="button" class="btn okb sc" data-t="inv2" aria-label="Scan barcode invoice" title="Scan"><svg class="ic"><use href="#i-scan"/></svg></button></div></div>
+    <div id="iv3" class="hide"><label for="inv3" data-i="lI3o">NO INVOICE 3 (opsional)</label><div class="nrow"><input id="inv3" placeholder="Ketik atau scan barcode" data-ip="pScan" autocomplete="off"><button type="button" class="btn okb sc" data-t="inv3" aria-label="Scan barcode invoice" title="Scan"><svg class="ic"><use href="#i-scan"/></svg></button></div></div>
+    <button type="button" class="addb" id="addInv" data-i="addInv">+ Tambah invoice</button>
+    <label for="f1" data-i="lF1">FOTO BARANG 1</label>
+    <button type="button" class="btn cambtn" id="c1">Buka kamera</button><input type="file" id="f1" accept="image/*" capture="environment" class="hide"><img class="prev" id="p1" alt="">
+    <div id="fb2" class="hide"><label for="f3" data-i="lF2o">FOTO BARANG 2 (opsional)</label>
+    <button type="button" class="btn cambtn" id="c3">Buka kamera</button><input type="file" id="f3" accept="image/*" capture="environment" class="hide"><img class="prev" id="p3" alt=""></div>
+    <div id="fb3" class="hide"><label for="f4" data-i="lF3o">FOTO BARANG 3 (opsional)</label>
+    <button type="button" class="btn cambtn" id="c4">Buka kamera</button><input type="file" id="f4" accept="image/*" capture="environment" class="hide"><img class="prev" id="p4" alt=""></div>
+    <button type="button" class="addb" id="addFoto" data-i="addFoto">+ Tambah foto barang</button>
+    <label for="f2" data-i="lFD">FOTO DRIVER</label>
+    <button type="button" class="btn cambtn" id="c2">Buka kamera</button><input type="file" id="f2" accept="image/*" capture="environment" class="hide"><img class="prev" id="p2" alt="">
+    <label for="koli" data-i="lKoli">TOTAL BARANG</label><input type="number" id="koli" min="1" placeholder="Jumlah barang" data-ip="pKoli">
+    <button class="btn save" id="btn" data-i="submit">SUBMIT</button>
+  </section>
+</main></div>
+
+<div id="vMon" class="hide">
+  <main class="solo" id="lock"><section class="lockbox">
+    <span class="logo all"><svg><use href="#i-lock"/></svg></span>
+    <h2 class="welcome" data-i="welcome">SELAMAT DATANG</h2>
+    <p style="color:var(--mut);font-size:14px;margin:0 0 6px" data-i="lockP">Masukkan NIP dan PASS untuk membuka monitoring.</p>
+    <label for="nip">NIP</label><input id="nip" class="pop" autocomplete="off" inputmode="numeric" placeholder="Masukkan NIP" data-ip="pNip">
+    <label for="pass">PASS</label><input type="password" id="pass" class="pop" autocomplete="off" placeholder="Masukkan PASS" data-ip="pPass">
+    <div class="err" id="pinErr"></div>
+    <button class="btn save" id="unlock" style="margin-top:10px" data-i="in">Masuk</button>
+  </section></main>
+  <div id="monBody" class="hide">
+    <div class="stats" id="stats"></div>
+    <main style="grid-template-columns:minmax(0,1fr)">
+  <section id="monSec">
+    <div class="shd">
+      <h2 data-i="dm">Data monitoring</h2>
+      <div class="zbar">
+        <button type="button" class="smb" id="zOut" data-ia="zOut" aria-label="Perkecil" title="Perkecil">&minus;</button>
+        <button type="button" class="smb" id="zVal" data-ia="zRst" aria-label="Reset zoom" title="Reset zoom">100%</button>
+        <button type="button" class="smb" id="zIn" data-ia="zIn" aria-label="Perbesar" title="Perbesar">+</button>
+        <button type="button" class="smb" id="zFs" data-ia="zFs" aria-label="Layar penuh" title="Layar penuh">&#x26F6;</button>
+      </div>
+    </div>
+    <div class="drange"><label for="dFrom" data-i="lDate">Tanggal</label><input type="date" id="dFrom" aria-label="Dari tanggal"><span data-i="sd">S/D</span><input type="date" id="dTo" aria-label="Sampai tanggal"></div>
+    <div class="bar">
+      <input id="q" list="invList" autocomplete="off" placeholder="Cari berdasarkan Invoice..." data-ip="pSearch">
+      <datalist id="invList"></datalist>
+      <button class="btn" id="cari" data-i="cari">Cari</button><button class="btn gray" id="reset">Reset</button>
+    </div>
+    <div class="wrap" id="tblWrap"><table>
+      <thead><tr><th class="no" data-i="lNo">NO</th><th data-i="lTgl">TANGGAL</th><th data-i="lJam">JAM</th><th data-i="lJasa">JASA</th><th data-i="lDrv">NAMA DRIVER</th><th data-i="lTlp">NO TLP DRIVER</th><th data-i="lI1">NO INVOICE 1</th><th data-i="lI2">NO INVOICE 2</th><th data-i="lI3">NO INVOICE 3</th><th data-i="lKoli">TOTAL BARANG</th><th data-i="lF1">FOTO BARANG 1</th><th data-i="lF2">FOTO BARANG 2</th><th data-i="lF3">FOTO BARANG 3</th><th data-i="lFD">FOTO DRIVER</th><th data-i="hAksi">AKSI</th></tr></thead>
+      <tbody id="tb"></tbody>
+    </table></div>
+    <div class="empty" id="empty" style="display:none" data-i="empty">Tidak ada data. Ubah kata kunci Invoice atau tambahkan data baru.</div>
+  </section>
+    </main>
+  </div>
+</div>
+<div id="cam" class="camwrap hide"><div class="cambox"><video id="vid" autoplay playsinline muted></video>
+  <div class="camact"><button class="btn gray" id="camX" type="button" data-i="cancel">Batal</button><button class="btn" id="camSnap" type="button" data-i="snap">Ambil foto</button></div></div></div>
+<input type="file" id="sf" accept="image/*" capture="environment" class="hide">
+<div id="lscan" class="camwrap hide"><div class="lbox">
+  <video id="lvid" autoplay playsinline muted></video>
+  <div class="lmask"></div><div class="lframe"><b></b><b></b><b></b><b></b><span class="lscanline"></span></div>
+  <div class="ltip" id="ltip"></div>
+  <div class="lok hide" id="lok"></div>
+  <input type="range" id="lZoom" class="lzoom hide" aria-label="Zoom" step="0.1">
+  <button class="ltorch hide" id="lTorch" type="button"></button>
+  <div class="lbar"><button class="btn gray" id="lX" type="button" data-i="cancel">Batal</button><button class="btn hide" id="lRetry" type="button" data-i="retry">Coba lagi</button><button class="btn gray hide" id="lNative" type="button" data-i="native">Pakai kamera HP</button><button class="btn ai hide" id="lAI" type="button" data-i="aiRead">Baca dengan IA</button></div>
+</div></div>
+
+<div id="qbar" aria-live="polite"></div>
+
+<div id="dlg" class="camwrap hide"><div class="cambox" style="text-align:center;color:#fff"><p id="dlgT" style="font-weight:700;margin:8px 0 4px"></p>
+  <p style="font-size:13px;color:#cfe0f2;margin:0 0 12px" data-i="dlgP">Masukkan NIP Anda untuk konfirmasi hapus.</p>
+  <input type="password" id="dlgNip" class="pop" inputmode="numeric" autocomplete="off" placeholder="Masukkan NIP" data-ip="pNip">
+  <div class="err" id="dlgErr" style="color:#ff9a92;text-align:left"></div>
+  <div class="camact"><button class="btn gray" id="dlgN" type="button" data-i="cancel">Batal</button><button class="del" id="dlgY" type="button" style="flex:1;padding:13px;font-size:14px" data-i="dlgY">Ya, hapus</button></div></div></div>
+<div id="sres" class="camwrap hide"><div class="cambox" style="color:#fff;text-align:center"><p id="sresT" style="font-weight:700;margin:8px 0 4px;line-height:1.5"></p>
+  <div class="camact"><button class="btn gray" id="sresX" type="button" data-i="close">Tutup</button><button class="btn" id="sresR" type="button" data-i="retake2">Foto ulang</button><button class="btn ai hide" id="sresA" type="button" data-i="aiRead">Baca dengan IA</button></div></div></div>
+
+<!-- Panel menu samping -->
+<div id="pnl" class="camwrap hide"><div class="pbox">
+  <div class="phd"><h3 id="pT"></h3><button class="btn gray lg" id="pX" type="button" data-i="close">Tutup</button></div>
+  <div id="pBody"></div>
+</div></div>
+
+<button id="sideTab" type="button" aria-label="Buka menu" style="display:none">›</button>
+<aside id="side" aria-label="Menu">
+  <div class="sideT" data-i="sideT">MENU UTAMA</div>
+  <div class="prof" id="prof"></div>
+  <button type="button" class="sideI" id="mUsers"><span class="mi blue"><svg><use href="#m-users"/></svg></span><span class="ml" data-i="mUsers">User Terdaftar</span><i class="chev">›</i></button>
+  <button type="button" class="sideI adm" id="mCreate"><span class="mi green"><svg><use href="#m-adduser"/></svg></span><span class="ml" data-i="mCreate">Create User</span><i class="chev">›</i></button>
+  <button type="button" class="sideI adm" id="mSet"><span class="mi gold"><svg><use href="#m-gear"/></svg></span><span class="ml" data-i="mSet">Pengaturan</span><i class="chev">›</i></button>
+  <button type="button" class="sideI adm" id="mLog"><span class="mi red"><svg><use href="#m-trash"/></svg></span><span class="ml" data-i="mLog">Record Hapus Data</span><i class="chev">›</i></button>
+  <button type="button" class="sideI" id="mPw"><span class="mi teal"><svg><use href="#m-key"/></svg></span><span class="ml" data-i="mPw">Ganti PASS Saya</span><i class="chev">›</i></button>
+  <button type="button" class="sideI" id="mLang"><span class="mi blue"><svg><use href="#m-lang"/></svg></span><span class="ml" data-i="mLang">Bahasa</span><i class="chev">›</i></button>
+  <button type="button" class="sideI out" id="mOut"><span class="mi"><svg><use href="#m-out"/></svg></span><span data-i="out">Keluar</span></button>
+</aside>
+
+<div id="msg"></div>
+<script>
+/* ===== SAMBUNGAN KE APPS SCRIPT (halaman ini dihosting di GitHub Pages) =====
+   Isi API_URL dengan URL deployment Apps Script Anda (yang berakhiran /exec). Hanya baris ini yang perlu diubah. */
+const API_URL='PASTE_URL_EXEC_APPS_SCRIPT_DI_SINI';
+(function(){
+  function mk(ok,bad){return new Proxy({},{get:function(_,name){
+    if(name==='withSuccessHandler')return function(f){return mk(f,bad)};
+    if(name==='withFailureHandler')return function(f){return mk(ok,f)};
+    if(name==='withUserObject')return function(){return mk(ok,bad)};
+    return function(){const args=Array.prototype.slice.call(arguments);
+      const fail=function(m){if(bad)bad(new Error(m))};
+      if(!/^https:\/\/script\.google\.com\//.test(API_URL)){fail('API_URL belum diisi dengan URL /exec Apps Script');return}
+      fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({fn:String(name),args:args})})
+        .then(function(r){return r.json()})
+        .then(function(j){if(j&&j.ok){if(ok)ok(j.result)}else fail((j&&j.error)||'Gagal memproses')})
+        .catch(function(e){fail('Koneksi ke server gagal. Periksa internet dan pengaturan deployment (akses: Siapa saja). '+(e&&e.message?e.message:''))})}}})}
+  window.google={script:{run:mk(null,null)}};
+})();
+</script>
+<script>
+const $=id=>document.getElementById(id);
+const BR=[['gojek','Gojek'],['grab','Grab'],['shopee','Shopee'],['bluebird','Bluebird']];
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const logo=k=>'<span class="logo '+k+'"><svg><use href="#i-'+k+'"/></svg></span>';
+const key=j=>{j=String(j).toLowerCase();const f=BR.find(b=>j.indexOf(b[0])>-1);return f?f[0]:'other'};
+let jasa='';
+// Pengaturan dari admin (dimuat dari server)
+let SET={nb:'',maint:false,maintMsg:'',minTlp:9,maxKoli:0,imgMax:1024,imgQ:72,idle:0,dupInv:true,reqSertim:true,lang:'id',aiOn:true,aiReady:false,aiModel:''};
+let ME=null;
+
+/* ================= Bahasa (i18n) ================= */
+const LANGS=[['id','Bahasa Indonesia'],['en','English']];
+const I={
+id:{openCam:'Buka kamera',viewPhoto:'Lihat foto',del:'Hapus',total:'Total data',loading:'Memuat data...',loadFail:'Gagal memuat: ',retake:'Ulangi foto',saved:'Data berhasil disimpan',saving:'Menyimpan...',saveFail:'Gagal menyimpan: ',
+ qSent:'Data dikirim, disimpan di latar belakang...',qSaving:'Menyimpan {0} data...',qPhoto:'Mengunggah foto {0} data...',qFail:'Gagal menyimpan {0}: {1}',qFix:'Perbaiki',qRetry:'Coba lagi',qDrop:'Buang',qDup:'Invoice {0} sudah pernah diinput',qBusy:'Selesaikan/kosongkan form terlebih dahulu, lalu tekan Perbaiki.',qBye:'Masih ada data yang sedang disimpan.',
+ incomplete:'Data belum lengkap. Mohon isi: ',tlpMin:'NO TLP DRIVER (minimal {0} angka)',invSame:'NO INVOICE tidak boleh sama',koliMax:'TOTAL BARANG maksimal {0}',
+ ttlIn:'PICKUP INSTAN',ttlMon:'MONITORING PICKUP INSTAN',needNipPass:'NIP dan PASS wajib diisi',needNip:'Isi NIP terlebih dahulu',badLogin:'NIP atau PASS salah',notReg:'NIP tidak terdaftar',
+ idleOut:'Keluar otomatis karena tidak ada aktivitas',readBar:'Membaca foto...',invRead:'Invoice terbaca: {0}',photoFail:'Gagal membaca foto. Coba lagi atau ketik nomor invoice manual.',okPrefix:'Berhasil: {0}',
+ camOn:'Mengaktifkan kamera...',tAim:'Arahkan kamera ke BARCODE invoice (di bawah angka INV), dekatkan sampai memenuhi lebar kotak, tahan stabil. Ketuk layar untuk fokus.',
+ tDark:'Terlalu gelap. Cari tempat lebih terang atau nyalakan senter.',tGlare:'Terlalu silau. Hindari pantulan lampu pada label barcode.',tNone:'Barcode belum terlihat. Arahkan kamera ke barcode lalu dekatkan.',
+ tBlur:'Gambar kurang tajam. Ketuk layar pada barcode untuk fokus, jarak sekitar 10-20 cm.',tV1:'Barcode tegak: dekatkan sampai barcode memenuhi tinggi kotak.',tV2:'Barcode tegak: jauhkan sedikit sampai seluruh barcode masuk kotak dan tajam.',
+ tH1:'Coba dekatkan sedikit, angka INV & barcode penuhi lebar kotak.',tH2:'Coba jauhkan sedikit sampai gambar tajam.',tVSee:'Barcode tegak terdeteksi. Pastikan seluruh barcode masuk kotak, tahan stabil...',tHSee:'Barcode terdeteksi. Luruskan di dalam kotak dan tahan stabil...',
+ tAiHint:'Sulit terbaca? Tekan "Baca dengan IA" di bawah, atau geser zoom.',
+ camPerm:'Izin kamera belum diberikan. Ketuk ikon gembok/pengaturan di kolom alamat Chrome, pilih Izin lalu Kamera: Izinkan, kemudian tekan Coba lagi. Bila tetap ditolak, buka aplikasi langsung di Chrome (bukan dari dalam aplikasi lain), atau tekan Pakai kamera HP.',camNF:'Kamera tidak ditemukan di perangkat ini.',camBusy:'Kamera sedang dipakai aplikasi lain. Tutup aplikasi itu lalu tekan Coba lagi.',
+ camNoSup:'Browser tidak mendukung kamera. Buka link ini di Chrome.',camFail:'Kamera tidak bisa dibuka.',torchOn:'Ketuk untuk menyalakan senter',camPol:'Halaman ini dibuka di dalam bingkai yang memblokir kamera. Buka link aplikasi langsung di Chrome (bukan dari dalam aplikasi lain atau link tersemat), lalu coba lagi.',camDen:'Kamera DIBLOKIR di Chrome untuk situs ini. Ketuk ikon di kiri kolom alamat > Izin > Kamera > Izinkan. Atau menu titik tiga Chrome > Setelan > Setelan situs > Kamera, lalu hapus script.google.com dari daftar Diblokir. Setelah itu muat ulang halaman.',camPrm:'Izin kamera belum diberikan. Tekan Coba lagi, lalu pilih Izinkan pada kotak yang muncul dari Chrome.',camSys:'Chrome belum diberi izin kamera oleh HP. Buka Setelan HP > Aplikasi > Chrome > Izin > Kamera > Izinkan, lalu coba lagi.',torchOff:'Ketuk untuk mematikan senter',native:'Pakai kamera HP',
+ pDark:'Foto terlalu gelap. Cari tempat lebih terang atau nyalakan lampu/blitz kamera HP.',pGlare:'Foto terlalu silau. Hindari pantulan lampu pada label barcode.',pNone:'Barcode belum terlihat jelas. Dekatkan kamera sampai barcode memenuhi sebagian besar layar.',
+ pBlur:'Foto kurang tajam. Tahan HP stabil, ketuk layar pada barcode agar fokus, jarak sekitar 15-20 cm.',pVert:'Barcode tegak belum terbaca. Pastikan seluruh barcode masuk utuh di foto, tajam, dan tidak terpotong.',pFull:'Pastikan angka INV dan barcode masuk utuh di foto, tajam, dan tidak terpotong.',
+ sresMsg:'Barcode dan angka invoice belum terbaca. {0}',dlgTitle:'Hapus data invoice {0}?',noInv:'(tanpa invoice)',nipMismatch:'NIP tidak sesuai dengan akun yang sedang login',delOk:'Data berhasil dihapus',delFail:'Gagal menghapus',
+ aiReading:'IA sedang membaca...',ocrRead:'Membaca angka invoice... dekatkan sampai angka INV jelas.',bcRead:'Membaca barcode... dekatkan barcode ke kotak.',ocrFail:'Nomor invoice juga tidak terbaca. ',ocrLoad:'Menyiapkan pembaca angka invoice...',ocrOff:'Pembaca angka tidak bisa dimuat (cek internet). Pakai tombol IA atau ketik manual.',aiDone:'IA mengisi: {0}. Periksa kembali sebelum submit.',aiNone:'IA tidak menemukan data yang bisa dibaca. Coba foto lebih dekat dan jelas.',aiInv:'Invoice ({0})',aiOff:'Mode IA belum aktif.',
+ zFsX:'Keluar layar penuh',
+ usersTot:'Total {0} akun terdaftar.',cRole:'ROLE',cStat:'STATUS',cCreated:'DIBUAT',rADM:'ADMIN',rPET:'PETUGAS',sAct:'AKTIF',sOff:'NONAKTIF',bOff:'Nonaktifkan',bOn:'Aktifkan',bRs:'Reset PASS',
+ statusUpd:'Status user diperbarui',rsFor:'Reset PASS untuk {0} ({1})',rsPh:'PASS baru (min. 6 karakter)',save:'Simpan',pass6:'PASS minimal 6 karakter',rsOk:'PASS berhasil direset',admOnly:'Fitur ini hanya untuk admin (Miranti)',
+ cuNote:'Hanya admin (Miranti) yang dapat membuat user. User baru otomatis berperan <b>Petugas</b>.',cuN:'NIP (angka, 3-20 digit)',cuNp:'NIP user baru',cuNmp:'Nama user',cuP:'PASS (minimal 6 karakter)',cuPp:'PASS awal user',cuGo:'Buat User',cuReq:'NIP, NAMA dan PASS wajib diisi',cuOk:'User {0} berhasil dibuat',
+ pw1:'PASS baru (minimal 6 karakter)',pw2:'Ulangi PASS baru',pwSame:'Ulangi PASS tidak sama',pwGo:'Simpan PASS',pwOk:'PASS berhasil diganti',
+ grpIn:'INPUT DATA',grpFoto:'FOTO',grpSec:'KEAMANAN & TAMPILAN',grpLang:'BAHASA',grpAi:'MODE IA',
+ sMaintT:'Tutup input sementara (maintenance)',sMaintD:'Petugas/tamu tidak bisa submit. Berguna saat rekap atau perbaikan data.',sMsgL:'Pesan saat input ditutup',
+ sDupT:'Tolak invoice duplikat',sDupD:'Invoice yang sudah pernah diinput tidak bisa disimpan lagi.',sSerT:'Foto DRIVER wajib',sSerD:'Jika dimatikan, foto driver boleh dikosongkan.',
+ sTlpT:'Minimal digit NO TLP driver',sTlpD:'Rentang 5-15.',sKolT:'Batas maksimal TOTAL BARANG',sKolD:'Cegah salah ketik. Isi 0 = tanpa batas.',
+ sImxT:'Ukuran foto maksimal (px)',sImxD:'Makin kecil, upload makin cepat & hemat Drive. Rentang 600-2000.',sIqT:'Kualitas foto JPEG (%)',sIqD:'Rentang 40-95. Disarankan 70-80.',
+ sIdleT:'Keluar otomatis jika tidak aktif (menit)',sIdleD:'Isi 0 untuk menonaktifkan. Rentang 0-240.',
+ sNbL:'Teks berjalan (NB) di halaman monitoring',sLangT:'Bahasa default aplikasi',sLangD:'Dipakai semua pengguna, kecuali yang memilih bahasa sendiri lewat menu.',
+ sAiOnT:'Aktifkan Mode IA',sAiOnD:'Tombol "Isi otomatis dengan IA" di form input dan "Baca dengan IA" di scan barcode.',
+ sSave:'Simpan Pengaturan',sSaved:'Pengaturan tersimpan',loadingP:'Memuat...',
+ logNone:'Belum ada data yang dihapus.',
+ grpVoice:'NOTIFIKASI SUARA',sVoiceL:'Teks notifikasi suara',sVoiceD:'Kalimat yang dibacakan setelah data tersimpan. Tulis {nama} untuk nama driver dan {invoice} untuk nomor invoice. Kosongkan lalu simpan untuk kembali ke teks bawaan.',sVoiceTest:'Tes suara',volOff:'Volume suara sedang 0% (bisu).',
+ lgRestore:'Pulihkan',lgPurge:'Hapus sampah',lgSure:'Yakin hapus?',lgRestored:'Data dikembalikan ke monitoring',lgPurged:'Dihapus permanen dari catatan, {0} foto dibersihkan dari Drive',logCount:'{0} penghapusan terakhir (terbaru di atas).',logDel:'menghapus baris {0}',langSet:'Bahasa: {0}'},
+en:{goUser:'Sign in as User',goTamu:'Continue as Guest',ssub:'Instant Pickup',pNip:'Enter NIP',pPass:'Enter PASS',in:'Sign in',back:'Back',out:'Sign out',cName:'NAME',tIn:'Data Entry',
+ inH:'New data entry',lNo:'NO',lTgl:'DATE',lJam:'TIME',lJasa:'SERVICE',lDrv:'DRIVER NAME',lTlp:'DRIVER PHONE',lI1:'INVOICE NO. 1',lI2:'INVOICE NO. 2',lI3:'INVOICE NO. 3',lI2o:'INVOICE NO. 2 (optional)',lI3o:'INVOICE NO. 3 (optional)',
+ lF1:'ITEM PHOTO 1',lF2:'ITEM PHOTO 2',lF3:'ITEM PHOTO 3',lF2o:'ITEM PHOTO 2 (optional)',lF3o:'ITEM PHOTO 3 (optional)',lFD:'DRIVER PHOTO',lKoli:'TOTAL ITEMS',submit:'SUBMIT',
+ pDrv:'Driver name',pScan:'Type or scan barcode',pKoli:'Number of items',addInv:'+ Add invoice',addFoto:'+ Add item photo',openCam:'Open camera',
+ lockP:'Enter your NIP and PASS to open monitoring.',welcome:'WELCOME',dm:'Monitoring data',lDate:'Date',sd:'TO',pSearch:'Search by Invoice...',cari:'Search',hAksi:'ACTION',
+ empty:'No data. Change the invoice keyword or add new data.',cancel:'Cancel',snap:'Take photo',retry:'Try again',torch:'Torch',aiRead:'Read with AI',close:'Close',retake2:'Retake photo',
+ dlgP:'Enter your NIP to confirm deletion.',dlgY:'Yes, delete',sideT:'MAIN MENU',mUsers:'Registered Users',mCreate:'Create User',mSet:'Settings',mLog:'Deletion Log',mPw:'Change My PASS',mLang:'Language',
+ aiT:'AI Mode',aiD:'Photo a label/receipt/driver screen and AI fills in the form. Please double-check before submitting.',aiBtn:'Auto-fill with AI',
+ zOut:'Zoom out',zIn:'Zoom in',zRst:'Reset zoom',zFs:'Full screen',zFsX:'Exit full screen',volT:'Sound',volR:'Sound volume',
+ viewPhoto:'View photo',del:'Delete',total:'Total data',loading:'Loading data...',loadFail:'Failed to load: ',retake:'Retake photo',saved:'Data saved successfully',saving:'Saving...',saveFail:'Failed to save: ',
+ qSent:'Data sent, saving in the background...',qSaving:'Saving {0} entries...',qPhoto:'Uploading photos for {0} entries...',qFail:'Failed to save {0}: {1}',qFix:'Fix',qRetry:'Try again',qDrop:'Discard',qDup:'Invoice {0} was already entered',qBusy:'Finish/clear the form first, then tap Fix.',qBye:'Some data is still being saved.',
+ incomplete:'Incomplete data. Please fill in: ',tlpMin:'DRIVER PHONE (at least {0} digits)',invSame:'INVOICE NO. must not be duplicated',koliMax:'TOTAL ITEMS maximum {0}',
+ ttlIn:'INSTANT PICKUP',ttlMon:'INSTANT PICKUP MONITORING',needNipPass:'NIP and PASS are required',needNip:'Please enter NIP first',badLogin:'Wrong NIP or PASS',notReg:'NIP not registered',
+ idleOut:'Signed out automatically due to inactivity',readBar:'Reading photo...',invRead:'Invoice read: {0}',photoFail:'Could not read the photo. Try again or type the invoice number manually.',okPrefix:'Success: {0}',
+ camOn:'Starting camera...',tAim:'Point the camera at the invoice BARCODE (below the INV number), move closer until it fills the width of the box, and hold steady. Tap the screen to focus.',
+ tDark:'Too dark. Find brighter light or turn on the torch.',tGlare:'Too much glare. Avoid light reflecting on the barcode label.',tNone:'No barcode visible. Point the camera at the barcode and move closer.',
+ tBlur:'Image is blurry. Tap the screen on the barcode to focus, about 10-20 cm away.',tV1:'Upright barcode: move closer until it fills the height of the box.',tV2:'Upright barcode: move back slightly until the whole barcode fits and is sharp.',
+ tH1:'Move a little closer so the INV number & barcode fill the width of the box.',tH2:'Move back a little until the image is sharp.',tVSee:'Upright barcode detected. Make sure the whole barcode is inside the box and hold steady...',tHSee:'Barcode detected. Align it inside the box and hold steady...',
+ tAiHint:'Hard to read? Tap "Read with AI" below, or adjust the zoom.',
+ camPerm:'Camera permission was not granted. Tap the lock/settings icon in the Chrome address bar, choose Permissions then Camera: Allow, then tap Try again. If still refused, open the app directly in Chrome (not inside another app), or tap Use phone camera.',camNF:'No camera found on this device.',camBusy:'The camera is in use by another app. Close it, then tap Try again.',
+ camNoSup:'This browser does not support the camera. Open this link in Chrome.',camFail:'The camera could not be opened.',torchOn:'Tap to turn on light',camPol:'This page is open inside a frame that blocks the camera. Open the app link directly in Chrome (not inside another app or an embedded link), then try again.',camDen:'The camera is BLOCKED in Chrome for this site. Tap the icon left of the address bar > Permissions > Camera > Allow. Or Chrome three-dot menu > Settings > Site settings > Camera, and remove script.google.com from the Blocked list. Then reload the page.',camPrm:'Camera permission was not granted yet. Tap Try again, then choose Allow in the Chrome prompt.',camSys:'Chrome has not been given camera permission by the phone. Open phone Settings > Apps > Chrome > Permissions > Camera > Allow, then try again.',torchOff:'Tap to turn off light',native:'Use phone camera',
+ pDark:'Photo is too dark. Find brighter light or turn on the phone flash.',pGlare:'Photo has too much glare. Avoid light reflecting on the barcode label.',pNone:'Barcode is not clearly visible. Move closer until it fills most of the screen.',
+ pBlur:'Photo is blurry. Hold the phone steady, tap the screen on the barcode to focus, about 15-20 cm away.',pVert:'The upright barcode could not be read. Make sure the whole barcode is in the photo, sharp and not cut off.',pFull:'Make sure the INV number and barcode are fully in the photo, sharp and not cut off.',
+ sresMsg:'Barcode and invoice number could not be read. {0}',dlgTitle:'Delete data for invoice {0}?',noInv:'(no invoice)',nipMismatch:'NIP does not match the logged-in account',delOk:'Data deleted successfully',delFail:'Failed to delete',
+ aiReading:'AI is reading...',ocrRead:'Reading the invoice number... move closer until the INV number is clear.',bcRead:'Reading barcode... bring it closer to the box.',ocrFail:'Invoice number could not be read either. ',ocrLoad:'Preparing the invoice number reader...',ocrOff:'The number reader could not be loaded (check internet). Use the AI button or type manually.',aiDone:'AI filled: {0}. Please double-check before submitting.',aiNone:'AI could not find readable data. Try a closer, clearer photo.',aiInv:'Invoice ({0})',aiOff:'AI mode is not active.',
+ usersTot:'{0} accounts registered in total.',cRole:'ROLE',cStat:'STATUS',cCreated:'CREATED',rADM:'ADMIN',rPET:'STAFF',sAct:'ACTIVE',sOff:'INACTIVE',bOff:'Deactivate',bOn:'Activate',bRs:'Reset PASS',
+ statusUpd:'User status updated',rsFor:'Reset PASS for {0} ({1})',rsPh:'New PASS (min. 6 characters)',save:'Save',pass6:'PASS must be at least 6 characters',rsOk:'PASS reset successfully',admOnly:'This feature is for admin (Miranti) only',
+ cuNote:'Only the admin (Miranti) can create users. New users automatically get the <b>Staff</b> role.',cuN:'NIP (digits, 3-20)',cuNp:'New user NIP',cuNmp:'User name',cuP:'PASS (at least 6 characters)',cuPp:'Initial PASS',cuGo:'Create User',cuReq:'NIP, NAME and PASS are required',cuOk:'User {0} created successfully',
+ pw1:'New PASS (at least 6 characters)',pw2:'Repeat new PASS',pwSame:'PASS does not match',pwGo:'Save PASS',pwOk:'PASS changed successfully',
+ grpIn:'DATA ENTRY',grpFoto:'PHOTOS',grpSec:'SECURITY & DISPLAY',grpLang:'LANGUAGE',grpAi:'AI MODE',
+ sMaintT:'Temporarily close input (maintenance)',sMaintD:'Staff/guests cannot submit. Useful during recap or data fixes.',sMsgL:'Message shown when input is closed',
+ sDupT:'Reject duplicate invoices',sDupD:'Invoices that were already entered cannot be saved again.',sSerT:'Driver photo required',sSerD:'If turned off, the driver photo may be left empty.',
+ sTlpT:'Minimum digits of driver phone',sTlpD:'Range 5-15.',sKolT:'Maximum TOTAL ITEMS',sKolD:'Prevents typos. 0 = no limit.',
+ sImxT:'Maximum photo size (px)',sImxD:'Smaller = faster upload and saves Drive space. Range 600-2000.',sIqT:'JPEG photo quality (%)',sIqD:'Range 40-95. 70-80 recommended.',
+ sIdleT:'Auto sign-out when inactive (minutes)',sIdleD:'Enter 0 to disable. Range 0-240.',
+ sNbL:'Scrolling text (NB) on the monitoring page',sLangT:'Default app language',sLangD:'Used by everyone, unless they pick their own language from the menu.',
+ sAiOnT:'Enable AI Mode',sAiOnD:'"Auto-fill with AI" in the entry form and "Read with AI" in the barcode scanner.',
+ sSave:'Save Settings',sSaved:'Settings saved',loadingP:'Loading...',
+ logNone:'No data has been deleted yet.',
+ grpVoice:'VOICE NOTIFICATION',sVoiceL:'Voice notification text',sVoiceD:'Sentence read aloud after data is saved. Write {nama} for the driver name and {invoice} for the invoice number. Leave empty and save to return to the default text.',sVoiceTest:'Test voice',volOff:'Sound volume is 0% (muted).',
+ lgRestore:'Restore',lgPurge:'Delete permanently',lgSure:'Are you sure?',lgRestored:'Data restored to monitoring',lgPurged:'Permanently removed from the log, {0} photo(s) cleaned from Drive',logCount:'Last {0} deletions (newest first).',logDel:'deleted row {0}',langSet:'Language: {0}'}
+};
+document.querySelectorAll('[data-i]').forEach(e=>{if(!(e.dataset.i in I.id))I.id[e.dataset.i]=e.textContent.trim()});
+document.querySelectorAll('[data-ip]').forEach(e=>{if(!(e.dataset.ip in I.id))I.id[e.dataset.ip]=e.getAttribute('placeholder')});
+document.querySelectorAll('[data-ia]').forEach(e=>{if(!(e.dataset.ia in I.id))I.id[e.dataset.ia]=e.getAttribute('aria-label')});
+let LANG='id',PL='',CURTAB='in';
+try{PL=localStorage.getItem('lang')||''}catch(e){}
+function savePL(l){PL=l;try{localStorage.setItem('lang',l)}catch(e){}}
+const t=(k,...a)=>{let s=I[LANG]&&I[LANG][k];if(s==null)s=I.id[k];if(s==null)s=k;a.forEach((v,i)=>{s=s.split('{'+i+'}').join(v)});return s};
+function applyLang(){document.documentElement.lang=LANG;
+  document.querySelectorAll('[data-i]').forEach(e=>e.textContent=t(e.dataset.i));
+  document.querySelectorAll('[data-ip]').forEach(e=>e.placeholder=t(e.dataset.ip));
+  document.querySelectorAll('[data-ia]').forEach(e=>{const v=t(e.dataset.ia);e.setAttribute('aria-label',v);e.title=v});
+  ['1','2','3','4'].forEach(n=>$('c'+n).textContent=PH['f'+n]?t('retake'):t('openCam'));
+  $('ttl').textContent=CURTAB==='mon'?t('ttlMon'):t('ttlIn');
+  if(FS){const v=t('zFsX');$('zFs').title=v;$('zFs').setAttribute('aria-label',v)}
+  document.querySelectorAll('.slang button').forEach(b=>b.classList.toggle('on',b.dataset.lg===LANG));
+  if(ALL.length)draw();qRender()}
+function setLang(l){LANG=I[l]?l:'id';applyLang()}
+
+$('picker').innerHTML=BR.map(b=>'<button type="button" class="opt" role="radio" data-v="'+b[1]+'">'+logo(b[0])+b[1]+'</button>').join('');
+function pickJasa(v){jasa=v;document.querySelectorAll('.opt').forEach(x=>{const on=x.dataset.v===v;x.classList.toggle('on',on);x.setAttribute('aria-checked',on)})}
+$('picker').onclick=e=>{const o=e.target.closest('.opt');if(!o)return;pickJasa(o.dataset.v);sync()};
+function toast(t,w){const m=$('msg');m.textContent=t;m.className=w?'warn':'';m.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>m.style.display='none',w?4500:3000)}
+function photo(u){u=String(u||'').trim();if(!u)return '-';
+  const m=u.match(/https?:\/\/\S+/);return m?'<a class="ph" target="_blank" href="'+esc(m[0])+'">'+t('viewPhoto')+'</a>':esc(u)}
+
+/* ===== Notifikasi suara setelah data berhasil disimpan =====
+   "Selamat untuk driver (NAMA) telah berhasil pickup barang atas invoice (NOMOR INVOICE)."
+   Teks template selalu diambil dari server (ikut dikirim saat simpan & saat cek monitoring) -> sinkron. */
+let VOICES=[];
+function loadVoices(){try{VOICES=window.speechSynthesis.getVoices()||[]}catch(e){}}
+try{loadVoices();window.speechSynthesis.addEventListener('voiceschanged',loadVoices)}catch(e){}
+/** Buka izin suara dari ketukan tombol SUBMIT (wajib di sebagian HP, mis. iPhone). */
+function primeVoice(){try{const p=new SpeechSynthesisUtterance(' ');p.volume=0;window.speechSynthesis.speak(p)}catch(e){}}
+/* Volume suara notifikasi (0-100, disimpan di perangkat ini). 0 = bisu. */
+let VOL=100,VOLLAST=100;
+try{const v=localStorage.getItem('vol');if(v!==null&&isFinite(+v))VOL=Math.min(100,Math.max(0,+v));const l=localStorage.getItem('volLast');if(l!==null&&+l>0)VOLLAST=+l;else if(VOL>0)VOLLAST=VOL}catch(e){}
+function setVol(v,test){VOL=Math.min(100,Math.max(0,Math.round(+v||0)));if(VOL>0)VOLLAST=VOL;
+  try{localStorage.setItem('vol',VOL);localStorage.setItem('volLast',VOLLAST)}catch(e){}
+  $('volR').value=VOL;$('volV').textContent=VOL+'%';
+  $('volBtn').classList.toggle('off',VOL===0);$('volIc').setAttribute('href',VOL===0?'#i-mute':'#i-vol');
+  if(test&&VOL>0){try{window.speechSynthesis.cancel()}catch(e){}speak('Tes suara')}}
+function speak(txt){try{const ss=window.speechSynthesis;if(!ss||VOL<=0)return;
+  const u=new SpeechSynthesisUtterance(txt);u.lang='id-ID';u.rate=.95;u.pitch=1;u.volume=VOL/100;
+  const v=VOICES.find(x=>/^id[-_]ID$/i.test(x.lang))||VOICES.find(x=>/^id/i.test(x.lang));if(v)u.voice=v;
+  ss.speak(u)}catch(e){}}
+/** Nomor invoice dibaca per karakter agar jelas: INV309 -> "I N V 3 0 9". */
+function spokenInv(s){return String(s||'').replace(/[^A-Za-z0-9]/g,'').split('').join(' ')}
+$('volR').addEventListener('input',()=>setVol($('volR').value,false));
+$('volR').addEventListener('change',()=>setVol($('volR').value,true));   // lepas slider -> bunyi "Tes suara"
+$('volBtn').addEventListener('click',()=>setVol(VOL>0?0:VOLLAST,true));  // klik ikon = bisu / aktif lagi
+setVol(VOL,false);
+const DEFV='Selamat untuk driver {nama}, telah berhasil pickup barang atas invoice {invoice}.';
+/** Ganti {nama} dan {invoice} pada template teks dari admin. */
+function voiceMsg(tpl,nama,inv){return String(tpl||DEFV).split('{nama}').join(nama).split('{invoice}').join(inv)}
+function announce(f,tpl){
+  if(tpl)SET.voiceText=tpl;   // teks terbaru dari server
+  const iv=[f.inv1,f.inv2,f.inv3].map(x=>String(x||'').trim()).filter(Boolean).map(spokenInv);
+  speak(voiceMsg(SET.voiceText,String(f.driver||'').trim(),iv.join(', dan ')))}
+
+/* ===== Monitoring ===== */
+let ALL=[],KPI='all';
+function dnum(s){const m=String(s).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);return m?(+m[3])*10000+(+m[2])*100+(+m[1]):0}
+function inRange(r){let a=+($('dFrom').value||'').replace(/-/g,''),b=+($('dTo').value||'').replace(/-/g,'');if(!a&&!b)return true;
+  if(a&&b&&a>b){const t=a;a=b;b=t}const d=dnum(r.tanggal);if(!d)return false;return(!a||d>=a)&&(!b||d<=b)}
+function qMatch(r){const q=$('q').value.trim().toLowerCase();if(!q)return true;
+  return [r.inv1,r.inv2,r.inv3].some(x=>String(x||'').toLowerCase().indexOf(q)>-1)}
+function draw(){
+  const base=ALL.filter(inRange).filter(qMatch),rows=KPI==='all'?base:base.filter(r=>key(r.jasa)===KPI);
+  $('tb').innerHTML=rows.map((r,i)=>{const k=key(r.jasa);
+    return '<tr><td class="no">'+(i+1)+'</td><td>'+esc(r.tanggal)+'</td><td>'+esc(r.jam)+'</td><td><div class="jasa">'+logo(k)+esc(r.jasa)+'</div></td><td>'+esc(r.driver)+'</td><td>'+esc(r.telp)+
+    '</td><td>'+esc(r.inv1)+'</td><td>'+esc(r.inv2)+'</td><td>'+esc(r.inv3)+'</td><td>'+esc(r.koli)+'</td><td>'+photo(r.foto1)+'</td><td>'+photo(r.foto2)+'</td><td>'+photo(r.foto3)+'</td><td>'+photo(r.fotoS)+
+    '</td><td><button class="del" data-row="'+r.row+'" data-inv="'+esc(r.inv1)+'">'+t('del')+'</button></td></tr>'}).join('');
+  $('empty').style.display=rows.length?'none':'block';
+  const c=k=>base.filter(r=>key(r.jasa)===k).length;
+  const st=(k,lg,n,tx)=>'<div class="stat'+(KPI===k?' on':'')+'" data-k="'+k+'" role="button" tabindex="0">'+lg+'<div><b>'+n+'</b><span>'+tx+'</span></div></div>';
+  $('stats').innerHTML=st('all',logo('all'),base.length,t('total'))+BR.map(b=>st(b[0],logo(b[0]),c(b[0]),b[1])).join('');
+}
+function render(d){ALL=d.rows;$('invList').innerHTML=d.invoices.slice(0,3000).map(i=>'<option value="'+esc(i)+'">').join('');draw()}
+$('stats').addEventListener('click',e=>{const s=e.target.closest('.stat');if(!s)return;KPI=KPI===s.dataset.k?'all':s.dataset.k;draw()});
+let NIP='',PASS='';
+function load(silent){
+  if(!silent)$('tb').innerHTML='<tr><td colspan="15" class="empty">'+t('loading')+'</td></tr>';
+  google.script.run.withSuccessHandler(d=>{render(d);markSeen(d.rows);BASE=true})
+   .withFailureHandler(e=>{if(/salah/.test(e.message)){toast(t('loadFail')+e.message);relock();return}if(!silent)toast(t('loadFail')+e.message)}).getData('',NIP,PASS);
+}
+/* ===== Notifikasi suara data baru: hanya di tab monitoring, hanya didengar user/admin yang login =====
+   Monitoring memeriksa 15 baris terakhir tiap 15 detik; data yang belum pernah terlihat diumumkan dengan suara.
+   Server juga mengirim teks suara terbaru di setiap pengecekan. */
+let SEEN={},BASE=false,POLLB=false;
+const rk=r=>r.row+'|'+String(r.inv1||'').trim().toLowerCase();
+function markSeen(rows){(rows||[]).forEach(r=>{SEEN[rk(r)]=1})}
+function pollNew(){
+  if(POLLB||!BASE||!ME||!PASS||CURTAB!=='mon'||document.hidden)return;POLLB=true;
+  google.script.run.withSuccessHandler(res=>{POLLB=false;
+    const rows=(res&&res.rows)||[];
+    if(res&&res.voiceText)SET.voiceText=res.voiceText;
+    const fresh=rows.filter(r=>!SEEN[rk(r)]).sort((a,b)=>a.row-b.row);
+    if(!fresh.length)return;
+    fresh.forEach(r=>{SEEN[rk(r)]=1});
+    fresh.filter(r=>!r.silent).slice(-5).forEach(r=>announce(r));   // paling banyak 5 pengumuman sekali periksa
+    load(true)}).withFailureHandler(()=>{POLLB=false}).peek(NIP,PASS)}
+setInterval(pollNew,15000);
+function updateVol(){$('vol').classList.toggle('hide',!(ME&&CURTAB==='mon'))}
+function relock(){if(FS)setFs(false);BASE=false;SEEN={};try{window.speechSynthesis.cancel()}catch(e){}NIP='';PASS='';ME=null;pClose();sideClose();updateSide();updateVol();clearTimeout(idleT);$('monBody').classList.add('hide');$('lock').classList.remove('hide')}
+$('cari').onclick=()=>load();
+$('q').addEventListener('input',()=>draw());
+$('q').addEventListener('keydown',e=>{if(e.key==='Enter')load()});
+$('reset').onclick=()=>{$('q').value='';$('dFrom').value='';$('dTo').value='';KPI='all';load()};
+['dFrom','dTo'].forEach(i=>$(i).addEventListener('change',()=>draw()));
+
+// ===== Zoom tabel + layar penuh =====
+let Z=1,FS=false;
+function setZ(v){Z=Math.min(2,Math.max(.6,Math.round(v*10)/10));$('tblWrap').style.setProperty('--z',Z);$('zVal').textContent=Math.round(Z*100)+'%'}
+$('zIn').onclick=()=>setZ(Z+.1);$('zOut').onclick=()=>setZ(Z-.1);$('zVal').onclick=()=>setZ(1);
+function setFs(on){FS=on;$('monSec').classList.toggle('fs',on);$('zFs').innerHTML=on?'&#x2715;':'&#x26F6;';
+  const v=t(on?'zFsX':'zFs');$('zFs').title=v;$('zFs').setAttribute('aria-label',v);
+  try{if(on){const d=document.documentElement;if(d.requestFullscreen)d.requestFullscreen().catch(()=>{})}
+    else if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{})}catch(e){}}
+$('zFs').onclick=()=>setFs(!FS);
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&FS)setFs(false)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&FS&&$('pnl').classList.contains('hide')&&$('dlg').classList.contains('hide'))setFs(false)});
+
+function compress(file,max,q){return new Promise(res=>{
+  if(!file)return res(null);
+  max=max||SET.imgMax;q=q||SET.imgQ/100;
+  const r=new FileReader();r.onerror=()=>res(null);r.onload=()=>{const im=new Image();im.onerror=()=>res(null);im.onload=()=>{
+    const k=Math.min(1,max/Math.max(im.width,im.height));
+    const c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;
+    c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',q))};
+    im.src=r.result};r.readAsDataURL(file)})}
+const PH={f1:null,f2:null,f3:null,f4:null};let stream=null,cur=null;
+
+/* ===== UPLOAD FOTO DI LATAR BELAKANG ===== */
+const UPN={f1:'barang1',f2:'driver',f3:'barang2',f4:'barang3'};
+const UP={};
+function upName(k){return 'foto_'+Date.now()+'_'+UPN[k]+'.jpg'}
+function startUp(k,d){const tok={done:false};UP[k]=tok;
+  tok.p=new Promise(ok=>google.script.run
+    .withSuccessHandler(u=>{tok.done=true;tok.u=u;ok({u:u})})
+    .withFailureHandler(e=>{tok.done=true;ok({e:e})})
+    .uploadPhoto(d,upName(k)))}
+
+/* ===== Pemanasan server ===== */
+let lastPing=0;
+function warm(){const n=Date.now();if(n-lastPing<150000)return;lastPing=n;
+  google.script.run.withSuccessHandler(()=>{}).withFailureHandler(()=>{}).ping()}
+setTimeout(warm,1500);
+
+function missing(){const m=[];if(!jasa)m.push(t('lJasa'));if(!$('drv').value.trim())m.push(t('lDrv'));
+  if($('tlp').value.replace(/\D/g,'').length<SET.minTlp)m.push(t('tlpMin',SET.minTlp));
+  if(!$('inv1').value.trim())m.push(t('lI1'));
+  const iv=['inv1','inv2','inv3'].map(i=>$(i).value.trim().toLowerCase()).filter(Boolean);if(new Set(iv).size<iv.length)m.push(t('invSame'));
+  if(!PH.f1)m.push(t('lF1'));if(SET.reqSertim&&!PH.f2)m.push(t('lFD'));
+  if(!$('koli').value)m.push(t('lKoli'));else if(SET.maxKoli>0&&+$('koli').value>SET.maxKoli)m.push(t('koliMax',SET.maxKoli));return m}
+function sync(){}
+function setPhoto(k,d){PH[k]=d;const n=k.slice(1);$('p'+n).src=d;$('p'+n).style.display='block';$('c'+n).textContent=t('retake');startUp(k,d);sync()}
+async function openCam(k){cur=k;
+  const ua=navigator.userAgent;
+  if(/Android|iPhone|iPad|iPod/i.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1)){$(k).click();return}
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280}},audio:false});
+    $('vid').srcObject=stream;$('cam').classList.remove('hide')}
+  catch(e){$(k).click()}
+}
+function stopCam(){if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;$('cam').classList.add('hide')}
+$('camSnap').onclick=()=>{const v=$('vid');if(!v.videoWidth)return;const k=Math.min(1,SET.imgMax/Math.max(v.videoWidth,v.videoHeight));
+  const c=document.createElement('canvas');c.width=v.videoWidth*k;c.height=v.videoHeight*k;
+  c.getContext('2d').drawImage(v,0,0,c.width,c.height);setPhoto(cur,c.toDataURL('image/jpeg',SET.imgQ/100));stopCam()};
+$('camX').onclick=stopCam;
+['f1','f2','f3','f4'].forEach(k=>$('c'+k.slice(1)).onclick=()=>openCam(k));
+['f1','f2','f3','f4'].forEach(k=>$(k).onchange=async()=>{const d=await compress($(k).files[0]);if(d)setPhoto(k,d)});
+$('vIn').addEventListener('input',sync);
+$('vIn').addEventListener('input',warm);
+$('vIn').addEventListener('click',warm);
+$('vIn').addEventListener('input',e=>{if(e.target.classList)e.target.classList.remove('aifill')});
+const p2=n=>String(n).padStart(2,'0');
+function tick(){const n=new Date();$('tgl').value=p2(n.getDate())+'/'+p2(n.getMonth()+1)+'/'+n.getFullYear();
+  $('jam').value=p2(n.getHours())+':'+p2(n.getMinutes())+':'+p2(n.getSeconds())}
+tick();setInterval(tick,1000);
+
+/* ===== Cek invoice duplikat lebih awal (latar belakang) ===== */
+const DUPC={},LASTV={};
+const INVF=['inv1','inv2','inv3'];
+function dupBad(){for(const id of INVF){const v=$(id).value.trim();if(v&&DUPC[v.toLowerCase()]===1)return v}return ''}
+setInterval(()=>{if(SET.dupInv===false)return;
+  INVF.forEach(id=>{const v=$(id).value.trim(),k=v.toLowerCase();
+    if(v.length>=6&&LASTV[id]===v&&!(k in DUPC)){DUPC[k]=null;
+      google.script.run.withSuccessHandler(r=>{DUPC[k]=r?1:0;if(r&&$(id).value.trim().toLowerCase()===k)toast(t('qDup',v),1)})
+       .withFailureHandler(()=>{delete DUPC[k]}).checkDup(v,'','')}
+    LASTV[id]=v})},1200);
+
+/* ===== SUBMIT: antrean simpan di latar belakang ===== */
+let JID=0;const Q=[],QF=[];let qRun=false;
+const KEYS=['f1','f3','f4','f2'];
+function clearForm(){
+  ['drv','tlp','inv1','inv2','inv3','koli','f1','f2','f3','f4'].forEach(i=>$(i).value='');['p1','p2','p3','p4'].forEach(i=>$(i).style.display='none');
+  document.querySelectorAll('.aifill').forEach(x=>x.classList.remove('aifill'));$('aiStat').textContent='';
+  resetInv();resetFoto();PH.f1=PH.f2=PH.f3=PH.f4=null;KEYS.forEach(k=>delete UP[k]);
+  ['c1','c2','c3','c4'].forEach(i=>$(i).textContent=t('openCam'));jasa='';document.querySelectorAll('.opt').forEach(x=>x.classList.remove('on'))}
+async function jobUrl(p){if(!p)return '';if(p.url)return p.url;
+  const r=p.tok?await p.tok.p:{};
+  if(r.u){p.url=r.u;return p.url}
+  p.url=await new Promise((ok,no)=>google.script.run.withSuccessHandler(ok).withFailureHandler(no).uploadPhoto(p.d,'foto_'+Date.now()+'.jpg'));
+  return p.url}
+const PHK=['foto1','foto2','foto3','fotoS'];   // sejajar dengan KEYS
+let PHP=0;   // jumlah data yang fotonya masih diunggah di latar belakang
+function phReady(p){return !p?'':(p.url||(p.tok&&p.tok.u)||'')}
+/** TAHAP 1: tulis baris data SEKARANG (foto yang belum selesai ditandai 'wait'), lalu suara + antrean berikutnya langsung jalan. */
+async function qNext(){if(qRun)return;qRun=true;
+  while(Q.length){const job=Q[0];qRender();
+    try{
+      const f={};KEYS.forEach((k,i)=>{const p=job.ph[k];f[PHK[i]]=p?(phReady(p)||'wait'):''});
+      const r=await new Promise((ok,no)=>google.script.run.withSuccessHandler(ok).withFailureHandler(no).saveAll(Object.assign({},job.form,f)));
+      job.row=r.row;job.waits=KEYS.filter((k,i)=>f[PHK[i]]==='wait');
+      Q.shift();
+      [job.form.inv1,job.form.inv2,job.form.inv3].forEach(x=>{x=String(x||'').trim().toLowerCase();if(x)DUPC[x]=1});
+      SEEN[job.row+'|'+String(job.form.inv1||'').trim().toLowerCase()]=1;   // agar tidak diumumkan dua kali di monitoring
+      toast(t('saved'));announce(job.form,r.voiceText);if(CURTAB==='mon'&&PASS)load(true);
+      finishPhotos(job);   // tidak ditunggu
+    }catch(e){Q.shift();job.err=(e&&e.message)||String(e);QF.push(job)}}
+  qRun=false;qRender()}
+/** TAHAP 2: setelah upload foto selesai, isi link fotonya ke baris yang sudah tersimpan. */
+async function finishPhotos(job){
+  if(!job.waits||!job.waits.length)return;
+  PHP++;qRender();
+  try{
+    const urls=await Promise.all(job.waits.map(k=>jobUrl(job.ph[k])));
+    const f={};job.waits.forEach((k,i)=>{f[PHK[KEYS.indexOf(k)]]=urls[i]});
+    let ok=false,err=null;
+    for(let n=0;n<3&&!ok;n++){
+      try{await new Promise((o,no)=>google.script.run.withSuccessHandler(o).withFailureHandler(no).setPhotos(job.row,job.form.inv1,f));ok=true}
+      catch(e){err=e;await new Promise(r=>setTimeout(r,1500))}}
+    if(!ok)throw err;
+    job.waits=[];if(CURTAB==='mon'&&PASS)load(true);
+  }catch(e){job.err=(e&&e.message)||String(e);QF.push(job)}
+  PHP--;qRender()}
+function qRender(){let h='';
+  if(Q.length)h+='<div class="qi sv">'+esc(t('qSaving',Q.length))+'</div>';
+  if(PHP)h+='<div class="qi sv">'+esc(t('qPhoto',PHP))+'</div>';
+  QF.forEach(j=>{h+='<div class="qi err">'+esc(t('qFail',j.label,j.err))+'<br>'+(j.row?'':'<button type="button" class="smb" data-q="fix" data-j="'+j.id+'">'+esc(t('qFix'))+'</button>')+'<button type="button" class="smb" data-q="retry" data-j="'+j.id+'">'+esc(t('qRetry'))+'</button><button type="button" class="smb" data-q="drop" data-j="'+j.id+'">'+esc(t('qDrop'))+'</button></div>'});
+  $('qbar').innerHTML=h}
+function restoreJob(j){const f=j.form;
+  if(f.jasa)pickJasa(f.jasa);$('drv').value=f.driver;$('tlp').value=f.telp;$('inv1').value=f.inv1;
+  if(f.inv2){showInv(2);$('inv2').value=f.inv2}if(f.inv3){showInv(3);$('inv3').value=f.inv3}
+  $('koli').value=f.koli;
+  if(j.ph.f4)showFoto(3);else if(j.ph.f3)showFoto(2);
+  KEYS.forEach(k=>{if(j.ph[k])setPhoto(k,j.ph[k].d)});
+  if(CURTAB!=='in')tab('in')}
+$('qbar').addEventListener('click',e=>{const b=e.target.closest('[data-q]');if(!b)return;
+  const id=+b.dataset.j,i=QF.findIndex(x=>x.id===id);if(i<0)return;const j=QF[i],a=b.dataset.q;
+  if(a==='drop'){QF.splice(i,1);qRender()}
+  else if(a==='retry'){QF.splice(i,1);j.err='';if(j.row){finishPhotos(j)}else{Q.push(j);qRender();qNext()}}
+  else if(a==='fix'){if($('inv1').value.trim()||$('drv').value.trim()){toast(t('qBusy'),1);return}
+    QF.splice(i,1);restoreJob(j);qRender()}});
+addEventListener('beforeunload',e=>{if(Q.length||QF.length||PHP>0){e.preventDefault();e.returnValue=t('qBye');return e.returnValue}});
+
+$('btn').onclick=()=>{
+  if(SET.maint){toast(SET.maintMsg,1);return}
+  const ms=missing();if(ms.length){toast(t('incomplete')+ms.join(', '),1);return}
+  const dv=dupBad();if(dv){toast(t('qDup',dv),1);return}
+  primeVoice();   // izinkan suara dari ketukan tombol SUBMIT
+  const V=i=>$(i).value.trim();
+  const job={id:++JID,label:V('inv1'),
+    form:{jasa:jasa,driver:V('drv'),telp:V('tlp'),inv1:V('inv1'),inv2:V('inv2'),inv3:V('inv3'),koli:$('koli').value},ph:{}};
+  KEYS.forEach(k=>{job.ph[k]=PH[k]?{d:PH[k],tok:UP[k]}:null});
+  clearForm();Q.push(job);toast(t('qSent'));qRender();qNext()};
+sync();
+function tab(tb){const m=tb==='mon';CURTAB=tb;updateVol();
+  $('ttl').textContent=m?t('ttlMon'):t('ttlIn');
+  $('nb').classList.toggle('hide',!m);if(m)nbSpeed();
+  $('vIn').classList.toggle('hide',m);$('vMon').classList.toggle('hide',!m);
+  $('tIn').classList.toggle('on',!m);$('tMon').classList.toggle('on',m);if(m&&PASS)load();else if(m)$('nip').focus()}
+$('tIn').onclick=()=>tab('in');$('tMon').onclick=()=>{primeVoice();tab('mon')};
+function loggedIn(p,n,w){ME=p;NIP=n;PASS=w;updateSide();updateVol();refreshSettings();idleReset()}
+function unlock(){primeVoice();const n=$('nip').value.trim(),w=$('pass').value;
+  if(!n||!w){$('pinErr').textContent=t('needNipPass');return}
+  const b=$('unlock');b.disabled=true;$('pinErr').textContent='';
+  google.script.run.withSuccessHandler(p=>{loggedIn(p,n,w);$('nip').value='';$('pass').value='';b.disabled=false;
+    $('lock').classList.add('hide');$('monBody').classList.remove('hide');load()})
+   .withFailureHandler(e=>{b.disabled=false;$('pinErr').textContent=e.message||t('badLogin')}).verifyLogin(n,w)}
+$('unlock').onclick=unlock;
+['nip','pass'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')unlock()}));
+
+// ===== Layar awal: Tamu / User =====
+$('stitle').innerHTML='AZ\u00B7KO SIDOARJO'.split('').map((c,i)=>c===' '?'<span class="sp" style="animation:none;opacity:1"></span>':'<span style="animation-delay:'+(0.5+i*0.07)+'s">'+c+'</span>').join('');
+function showSplash(){sReset();$('snip').value='';$('splash').classList.remove('out');$('sMenu').classList.remove('hide');$('sLogin').classList.add('hide');$('sErr').textContent=''}
+$('goTamu').onclick=()=>{$('tMon').classList.add('hide');$('splash').classList.add('out')};
+$('goUser').onclick=()=>{$('sMenu').classList.add('hide');$('sLogin').classList.remove('hide');$('snip').focus()};
+$('sBack').onclick=()=>{sReset();$('snip').value='';$('sLogin').classList.add('hide');$('sMenu').classList.remove('hide');$('sErr').textContent=''};
+function sLogin(){primeVoice();const n=$('snip').value.trim(),w=$('spass').value;
+  if(!n||!w){$('sErr').textContent=t('needNipPass');return}
+  const b=$('sGo');b.disabled=true;$('sErr').textContent='';
+  google.script.run.withSuccessHandler(p=>{loggedIn(p,n,w);sReset();$('snip').value='';b.disabled=false;
+    $('lock').classList.add('hide');$('monBody').classList.remove('hide');$('tMon').classList.remove('hide');$('splash').classList.add('out')})
+   .withFailureHandler(e=>{b.disabled=false;$('sErr').textContent=e.message||t('badLogin')}).verifyLogin(n,w)}
+$('sGo').onclick=sLogin;
+function sReset(){['sNama','sPassBox','sGo'].forEach(i=>$(i).classList.add('hide'));$('snama').value='';$('spass').value=''}
+function sCek(){const n=$('snip').value.trim();if(!n){$('sErr').textContent=t('needNip');return}
+  const b=$('sOk');b.disabled=true;$('sErr').textContent='';
+  google.script.run.withSuccessHandler(nm=>{b.disabled=false;$('snama').value=nm;
+    ['sNama','sPassBox','sGo'].forEach(i=>$(i).classList.remove('hide'));$('spass').focus()})
+   .withFailureHandler(e=>{b.disabled=false;sReset();$('sErr').textContent=e.message||t('notReg')}).getNama(n)}
+$('sOk').onclick=sCek;
+$('snip').addEventListener('keydown',e=>{if(e.key==='Enter')sCek()});
+$('snip').addEventListener('input',()=>{sReset();$('sErr').textContent=''});
+$('spass').addEventListener('keydown',e=>{if(e.key==='Enter')sLogin()});
+$('logout').onclick=()=>{relock();$('tMon').classList.add('hide');tab('in');showSplash()};
+document.querySelectorAll('.slang button').forEach(b=>b.onclick=()=>{savePL(b.dataset.lg);setLang(b.dataset.lg)});
+
+/* =====================================================================
+   SCAN INVOICE - BARCODE DULU, ANGKA (OCR) SEBAGAI CADANGAN
+   1) Begitu kamera aktif, barcode langsung dibaca terus-menerus:
+      BarcodeDetector (frame penuh + area dipertajam) dan ZXing (variasi miring/putar).
+   2) OCR (Tesseract.js) membaca angka "INV123456789" di atas barcode sebagai cadangan,
+      mulai berjalan setelah 3,5 detik bila barcode belum terbaca.
+   3) Cadangan terakhir: IA (bila diaktifkan admin).
+   Hanya nomor berformat INV + angka yang diterima (barcode SKU diabaikan). Ubah INV_RE bila format berubah.
+   ===================================================================== */
+const FMTS=['code_128','code_39','code_93','ean_13','ean_8','upc_a','upc_e','itf','codabar','qr_code','data_matrix'];
+const INV_RE=/^INV\d{6,14}$/;
+const cleanInv=s=>String(s||'').replace(/\s+/g,'').toUpperCase();
+const isInv=s=>INV_RE.test(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let sTarget=null,LASTIMG=null,DETP=null,ZXP=null,ZXH=null,ZXR=null,OCRP=null,OCRW=[];
+function getDet(){if(DETP)return DETP;
+  DETP=(async()=>{if(!('BarcodeDetector' in window))return null;
+    try{let f=FMTS;if(BarcodeDetector.getSupportedFormats){const s=await BarcodeDetector.getSupportedFormats();f=FMTS.filter(x=>s.indexOf(x)>-1)}
+      return f.length?new BarcodeDetector({formats:f}):new BarcodeDetector()}
+    catch(e){try{return new BarcodeDetector()}catch(_){return null}}})();
+  return DETP}
+const loadZx=()=>{if(window.ZXing)return Promise.resolve();
+  return ZXP||(ZXP=new Promise((ok,no)=>{const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';s.onload=ok;s.onerror=()=>{ZXP=null;no(new Error('zxing'))};document.head.appendChild(s)}))};
+
+/** Salin sumber (video/gambar/kanvas) ke kanvas.
+ *  box = hanya area kotak scan | W = sisi terpanjang | up = batas perbesaran (default 1 = hanya mengecilkan)
+ *  deg = putar derajat kecil | rot = putar 90 | flt = abu-abu + kontras | cv = kanvas yang dipakai ulang. */
+function prep(src,o){o=o||{};
+  const sw=src.videoWidth||src.naturalWidth||src.width,sh=src.videoHeight||src.naturalHeight||src.height;
+  let sx=0,sy=0,cw=sw,ch=sh;
+  if(o.box){sx=Math.round(sw*.05);cw=Math.round(sw*.9);sy=Math.round(sh*.1);ch=Math.round(sh*.8)}
+  const k=Math.min(o.up||1,(o.W||1280)/Math.max(cw,ch));
+  const w=Math.max(1,Math.round(cw*k)),h=Math.max(1,Math.round(ch*k));
+  const c=o.cv||document.createElement('canvas');
+  c.width=o.rot?h:w;c.height=o.rot?w:h;
+  const x=c.getContext('2d');
+  x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);
+  if(o.flt&&'filter' in x)x.filter='grayscale(1) contrast(1.6)';
+  x.translate(c.width/2,c.height/2);x.rotate(((o.rot?90:0)+(o.deg||0))*Math.PI/180);
+  x.drawImage(src,sx,sy,cw,ch,-w/2,-h/2,w,h);
+  return c}
+
+/** BarcodeDetector: ambil hasil pertama yang berformat INV (barcode SKU diabaikan). */
+async function detectInv(src){const det=await getDet();if(!det)return '';
+  try{const r=await det.detect(src);for(const b of r){const v=cleanInv(b.rawValue);if(isInv(v))return v}}catch(e){}
+  return ''}
+function zxRead(c,glob){try{const Z=ZXing;
+  if(!ZXH){ZXH=new Map();ZXH.set(Z.DecodeHintType.TRY_HARDER,true);
+    ZXH.set(Z.DecodeHintType.POSSIBLE_FORMATS,['CODE_128','CODE_39','CODE_93','EAN_13','EAN_8','UPC_A','UPC_E','QR_CODE','DATA_MATRIX'].map(k=>Z.BarcodeFormat[k]).filter(v=>v!==undefined))}
+  const src=new Z.HTMLCanvasElementLuminanceSource(c);
+  const bb=new Z.BinaryBitmap(glob?new Z.GlobalHistogramBinarizer(src):new Z.HybridBinarizer(src));
+  return String((ZXR||(ZXR=new Z.MultiFormatReader())).decode(bb,ZXH).getText()||'').trim()}catch(e){return ''}}
+function zxInv(c,glob){const v=cleanInv(zxRead(c,glob));return isInv(v)?v:''}
+
+/* ----- OCR angka invoice (Tesseract.js). Dipanaskan sejak halaman dibuka, worker dipakai ulang. ----- */
+function loadOcr(){if(OCRP)return OCRP;
+  OCRP=(async()=>{
+    if(!window.Tesseract)await new Promise((ok,no)=>{const s=document.createElement('script');
+      s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';s.onload=ok;s.onerror=()=>no(new Error('tesseract'));document.head.appendChild(s)});
+    const mkW=async()=>{
+      const tries=[{langPath:'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0_best_int'},{},{cacheMethod:'none'}];
+      let w=null,err=null;
+      for(const o of tries){try{w=await Tesseract.createWorker('eng',1,o);break}catch(e){err=e}}
+      if(!w)throw err||new Error('ocr');
+      try{await w.setParameters({tessedit_char_whitelist:'INV0123456789',tessedit_pageseg_mode:'11',user_defined_dpi:'300'})}catch(e){}
+      try{await w.setParameters({tessjs_create_hocr:'0',tessjs_create_tsv:'0',tessjs_create_box:'0',tessjs_create_unlv:'0',tessjs_create_osd:'0',load_system_dawg:'0',load_freq_dawg:'0'})}catch(e){}
+      return w};
+    const w1=await mkW();OCRW=[w1];
+    if((navigator.hardwareConcurrency||2)>=6)mkW().then(w=>{OCRW.push(w)}).catch(()=>{});   // worker ke-2 menyusul di latar belakang
+    return OCRW})().catch(e=>{OCRP=null;OCRW=[];throw e});
+  return OCRP}
+function ocrWords(d){if(d.words&&d.words.length)return d.words;const o=[];
+  (d.blocks||[]).forEach(b=>(b.paragraphs||[]).forEach(p=>(p.lines||[]).forEach(l=>(l.words||[]).forEach(w=>o.push(w)))));return o}
+/** Cari pola INV+angka pada hasil OCR. n = jumlah angka, conf = keyakinan kata terbaik. */
+function parseOcr(d){const found=[];
+  String(d.text||'').split(/\n/).forEach(l=>{const s=l.replace(/[^A-Za-z0-9]/g,'').toUpperCase();
+    const re=/[IL1]?NV(\d{6,12})/g;let m;while((m=re.exec(s)))found.push(m[1])});
+  if(!found.length)return null;
+  const dg=found.find(x=>x.length===9)||found[0];
+  let conf=0;ocrWords(d).forEach(w=>{const s=String(w.text||'').replace(/\s/g,'');if(s.indexOf(dg.slice(0,6))>-1)conf=Math.max(conf,w.confidence||0)});
+  return {v:'INV'+dg,n:dg.length,conf:conf}}
+const OCR_OUT={text:true,blocks:true};
+async function ocrInv(c){await loadOcr();const r=await OCRW[0].recognize(c,{},OCR_OUT);return parseOcr((r&&r.data)||{})}
+
+/** Pembacaan mendalam untuk foto dari galeri/kamera bawaan HP. */
+async function deepOcr(src){let best='';
+  try{for(const W of [1100,1600,2200]){const r=await ocrInv(prep(src,{W:W,up:1.3,flt:true}));
+      if(r){if(r.n===9)return r.v;if(!best)best=r.v}}}catch(e){}
+  return best}
+async function deepBarcode(src){
+  let tx=await detectInv(src);if(tx)return tx;
+  const bd=[{W:1800,up:1.5},{W:1800,up:1.5,flt:1},{W:1800,deg:-5},{W:1800,deg:5},{W:1800,rot:1},{W:2400,up:2,flt:1}];
+  for(const o of bd){tx=await detectInv(prep(src,o));if(tx)return tx}
+  try{await loadZx()}catch(e){}
+  if(window.ZXing){
+    const zv=[[{W:1400},0],[{W:1400,flt:1},1],[{W:1400,deg:-5},0],[{W:1400,deg:5},0],[{W:1400,rot:1},0],[{W:1000,flt:1},1]];
+    for(const a of zv){tx=zxInv(prep(src,a[0]),!!a[1]);if(tx)return tx;await sleep(0)}}
+  return ''}
+
+document.querySelectorAll('.sc').forEach(b=>b.onclick=()=>openLive(b.dataset.t));
+
+// ===== Scan langsung =====
+const L={stream:null,timer:null,run:false,busy:false,n:0,done:false,track:null,torch:false,t0:0,rf:0,cv:null,cv2:null,oc:{},oi:0,ocrRun:false,ocrAgain:false,ocrMiss:0,ocrFail:false,aiTried:false};
+function tip(tx,c){const e=$('ltip');if(e.textContent!==tx)e.textContent=tx;e.className='ltip '+(c||'')}
+function stopLive(){L.run=false;clearTimeout(L.timer);if(L.stream)L.stream.getTracks().forEach(x=>x.stop());L.stream=null;L.track=null;L.torch=false;$('lvid').srcObject=null;$('lZoom').classList.add('hide');$('lscan').classList.add('hide')}
+function beep(){try{const a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator();o.connect(a.destination);o.frequency.value=1000;o.start();setTimeout(()=>{o.stop();a.close()},130)}catch(e){}}
+function liveOk(tx){if(L.done)return;L.done=true;tx=String(tx).trim();$(sTarget).value=tx;if(navigator.vibrate)navigator.vibrate([60,40,60]);beep();
+  const e=$('lok');e.textContent=t('okPrefix',tx);e.classList.remove('hide');
+  setTimeout(()=>{e.classList.add('hide');stopLive()},600)}
+function refocus(px,py){const tr=L.track;if(!tr||!tr.getCapabilities)return;
+  let cap={};try{cap=tr.getCapabilities()||{}}catch(e){return}
+  const fm=cap.focusMode||[];if(!fm.length)return;
+  const adv={focusMode:fm.indexOf('single-shot')>-1?'single-shot':'continuous'};
+  if(px!=null&&cap.pointsOfInterest!==undefined)adv.pointsOfInterest=[{x:px,y:py}];
+  tr.applyConstraints({advanced:[adv]}).then(()=>setTimeout(()=>{
+    if(L.track===tr&&fm.indexOf('continuous')>-1)tr.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{})},800)).catch(()=>{})}
+$('lvid').addEventListener('click',e=>{const r=e.currentTarget.getBoundingClientRect();refocus((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height)});
+
+/** Terima hasil OCR: 9 angka & yakin (>=70) langsung, selain itu harus terbaca 2x sama. */
+function ocrAccept(r){if(!r)return false;
+  L.oc[r.v]=(L.oc[r.v]||0)+1;
+  return L.oc[r.v]>=2||(r.n===9&&r.conf>=70)}
+/** OCR berjalan di latar belakang (cadangan) selama kamera aktif. */
+async function ocrLoop(){if(L.ocrRun){L.ocrAgain=true;return}L.ocrRun=true;
+  try{await loadOcr();
+    const started=new Set(),procs=[];
+    const run=async(w,i)=>{let fail=0;if(i)await sleep(350*i);
+      while(L.run&&!L.done){const v=$('lvid');
+        if(!v.videoWidth){await sleep(100);continue}
+        L.oi++;
+        try{const r=parseOcr(((await w.recognize(prep(v,{box:true,W:L.oi%3===0?1300:850,flt:true}),{},OCR_OUT))||{}).data||{});
+          if(!L.run||L.done)return;
+          if(r&&ocrAccept(r)){liveOk(r.v);return}
+          if(!r)L.ocrMiss++;
+          fail=0}
+        catch(e){if(++fail>=4){L.ocrFail=true;return}}}};
+    while(L.run&&!L.done){OCRW.forEach((w,i)=>{if(!started.has(w)){started.add(w);procs.push(run(w,i))}});await sleep(250)}
+    await Promise.all(procs)
+  }catch(e){L.ocrFail=true}
+  L.ocrRun=false;
+  if(L.ocrAgain&&L.run&&!L.done){L.ocrAgain=false;ocrLoop()}}
+/** Barcode SELALU dibaca sejak kamera aktif (OCR angka hanya cadangan). */
+function barcodeOn(sec){return true}
+
+async function liveTick(){const v=$('lvid');if(L.busy||L.done||!v.videoWidth)return;L.busy=true;
+  try{const sec=(Date.now()-L.t0)/1000,bc=barcodeOn(sec);
+    if(!$('lAI').disabled&&sec>1.5){const ph=Math.floor(sec/3)%3;
+      tip(L.ocrFail?t('ocrOff'):ph===0?(bc?t('bcRead'):(OCRW.length?t('ocrRead'):t('ocrLoad'))):ph===1?t('tH1'):(SET.aiReady?t('tAiHint'):t('tH2')),(L.ocrFail||ph>0)?'warn':'')}
+    if(sec>2&&Date.now()-L.rf>3000){L.rf=Date.now();refocus()}
+    if(!L.aiTried&&SET.aiReady&&sec>3.5&&(L.ocrFail||sec>10)){L.aiTried=true;$('lAI').click()}   // cadangan otomatis: IA
+    if(bc&&!L.done){L.n++;
+      let tx=await detectInv(v);                                                   // frame penuh
+      if(!tx&&L.n%2===0)tx=await detectInv(prep(v,{box:true,W:1280,up:1.5,flt:true,cv:L.cv||(L.cv=document.createElement('canvas'))}));
+      if(!tx&&L.n%3===0&&window.ZXing){const i=(L.n/3)|0,m=i%4;                    // ZXing: variasi miring / putar
+        tx=zxInv(prep(v,{box:true,W:900,up:1.5,deg:m===1?-4:m===2?4:0,rot:m===3,cv:L.cv2||(L.cv2=document.createElement('canvas'))}),i%2===1)}
+      if(tx&&!L.done)liveOk(tx)}
+  }catch(e){}
+  L.busy=false}
+function liveLoop(){if(!L.run)return;liveTick().then(()=>{if(L.run)L.timer=setTimeout(liveLoop,40)})}
+function camBtns(){$('lRetry').classList.remove('hide');$('lNative').classList.remove('hide');$('lTorch').classList.add('hide')}
+async function camDiag(){let pol='?',st='?';
+  try{const fp=document.featurePolicy||document.permissionsPolicy;if(fp&&fp.allowsFeature)pol=fp.allowsFeature('camera')?'ya':'tidak'}catch(e){}
+  try{st=(await navigator.permissions.query({name:'camera'})).state}catch(e){}
+  return {pol:pol,st:st}}
+function camErr(e){const n=(e&&e.name)||'';
+  if(typeof e==='string'){tip(e,'warn');camBtns();return}
+  if(n==='NotAllowedError'||n==='SecurityError'){
+    tip(t('camPerm'),'warn');camBtns();
+    camDiag().then(d=>{let m=t('camSys');
+      if(d.pol==='tidak')m=t('camPol');else if(d.st==='denied')m=t('camDen');else if(d.st==='prompt')m=t('camPrm');
+      tip(m+' ('+n+' | izin:'+d.st+' | bingkai:'+d.pol+')','warn')});
+    return}
+  let m=t('camFail');
+  if(n==='NotFoundError'||n==='OverconstrainedError')m=t('camNF');
+  else if(n==='NotReadableError')m=t('camBusy');
+  tip(m+(n?' ('+n+')':''),'warn');camBtns()}
+function setTorchTxt(){const b=$('lTorch');b.textContent='\uD83D\uDD26 '+t(L.torch?'torchOff':'torchOn');b.classList.toggle('on',!!L.torch)}
+async function openLive(id){sTarget=id;L.done=false;L.busy=false;L.n=0;L.rf=0;L.oc={};L.oi=0;L.ocrMiss=0;L.ocrFail=false;L.aiTried=false;L.t0=Date.now();
+  loadZx().catch(()=>{});getDet();
+  loadOcr().catch(()=>{L.ocrFail=true});
+  L.torch=false;setTorchTxt();$('lscan').classList.remove('hide');$('lRetry').classList.add('hide');$('lNative').classList.add('hide');$('lTorch').classList.add('hide');$('lZoom').classList.add('hide');
+  $('lAI').classList.toggle('hide',!SET.aiReady);$('lAI').disabled=false;tip(t('camOn'));
+  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){camErr(t('camNoSup'));return}
+  const vc={facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30}};
+  try{try{L.stream=await navigator.mediaDevices.getUserMedia({video:vc,audio:false})}
+      catch(e){if(e&&(e.name==='NotAllowedError'||e.name==='SecurityError'))throw e;L.stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false})}}
+  catch(e){camErr(e);return}
+  $('lvid').srcObject=L.stream;tip(t('tAim'));
+  L.track=L.stream.getVideoTracks()[0];
+  L.run=true;L.t0=Date.now();liveLoop();
+  setTimeout(()=>{if(L.run&&!L.done)ocrLoop()},3500);   // OCR angka hanya cadangan (mulai setelah 3,5 detik)
+  try{const cap=L.track.getCapabilities?L.track.getCapabilities():{};
+    if(cap.focusMode&&cap.focusMode.indexOf('continuous')>-1)await L.track.applyConstraints({advanced:[{focusMode:'continuous'}]});
+    $('lTorch').classList.toggle('hide',!cap.torch);
+    if(cap.zoom&&cap.zoom.max>cap.zoom.min){const z=$('lZoom');z.min=cap.zoom.min;z.max=Math.min(cap.zoom.max,cap.zoom.min*6);z.step=cap.zoom.step||0.1;
+      const v0=Math.min(+z.max,Math.max(+cap.zoom.min,1.5));z.value=v0;await L.track.applyConstraints({advanced:[{zoom:v0}]});z.classList.remove('hide')}}
+  catch(e){}}
+$('lZoom').oninput=function(){if(L.track)L.track.applyConstraints({advanced:[{zoom:+this.value}]}).catch(()=>{})};
+$('lX').onclick=stopLive;$('lRetry').onclick=()=>openLive(sTarget);
+$('lTorch').onclick=async()=>{L.torch=!L.torch;try{await L.track.applyConstraints({advanced:[{torch:L.torch}]})}catch(e){L.torch=!L.torch}setTorchTxt()};
+$('lNative').onclick=()=>{stopLive();toast(t('readBar'));$('sf').click()};
+
+// ===== Baca dengan IA (opsional, hanya bila diaktifkan admin) =====
+function aiOnly(src){return aiCall(prep(src,{W:1280}).toDataURL('image/jpeg',.8),'invoice').then(r=>(r.invoices||[])[0]||'').catch(()=>'')}
+$('lAI').onclick=async()=>{const v=$('lvid');if(L.done||!v.videoWidth)return;
+  $('lAI').disabled=true;tip(t('aiReading'));
+  try{const r=await aiCall(prep(v,{W:1280}).toDataURL('image/jpeg',.8),'invoice');const inv=(r.invoices||[])[0];
+    if(inv){liveOk(inv);return}
+    tip(t('aiNone'),'warn')}
+  catch(e){tip((e&&e.message)||String(e),'warn')}
+  $('lAI').disabled=false};
+
+// ===== Cadangan: foto dari galeri/kamera bawaan HP =====
+$('sresX').onclick=()=>$('sres').classList.add('hide');
+$('sresR').onclick=()=>{$('sres').classList.add('hide');$('sf').click()};
+$('sresA').onclick=async()=>{if(!LASTIMG)return;const b=$('sresA');b.disabled=true;$('sresT').textContent=t('aiReading');
+  const v=await aiOnly(LASTIMG);
+  if(v){$(sTarget).value=v;$('sres').classList.add('hide');toast(t('invRead',v))}else $('sresT').textContent=t('aiNone');
+  b.disabled=false};
+$('sf').onchange=async()=>{const f=$('sf').files[0];$('sf').value='';if(!f)return;toast(t('readBar'));
+  try{const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=URL.createObjectURL(f)});
+    LASTIMG=img;
+    toast(t('bcRead'));let tx=await deepBarcode(img);                // 1) barcode dulu, banyak variasi
+    if(!tx){toast(t('ocrRead'));tx=await deepOcr(img)}               // 2) cadangan: baca angka invoice
+    if(!tx&&SET.aiReady){toast(t('aiReading'));tx=await aiOnly(img)} // 3) IA
+    if(tx){$(sTarget).value=tx;if(navigator.vibrate)navigator.vibrate([60,40,60]);beep();toast(t('invRead',tx))}
+    else{$('msg').style.display='none';$('sresT').textContent=t('sresMsg',t('pFull'));$('sresA').classList.toggle('hide',!SET.aiReady);$('sresA').disabled=false;$('sres').classList.remove('hide')}
+  }catch(e){toast(t('photoFail'),1)}};
+setTimeout(()=>{loadOcr().catch(()=>{});loadZx().catch(()=>{})},1500);   // panaskan pembaca sejak halaman dibuka
+
+/* ================= MODE IA (isi form otomatis dari foto) ================= */
+function aiCall(durl,mode){return new Promise((ok,no)=>google.script.run.withSuccessHandler(ok).withFailureHandler(no).aiExtract(durl,mode))}
+function showInv(n){while(nInv<n){nInv++;$('iv'+nInv).classList.remove('hide')}if(nInv>=3)$('addInv').classList.add('hide')}
+function fillAi(r){const got=[],mark=id=>$(id).classList.add('aifill');
+  const inv=(r.invoices||[]).slice(0,3);
+  if(inv.length){showInv(inv.length);inv.forEach((v,i)=>{$('inv'+(i+1)).value=v;mark('inv'+(i+1))});got.push(t('aiInv',inv.length))}
+  if(r.driver){$('drv').value=r.driver;mark('drv');got.push(t('lDrv'))}
+  if(r.phone){$('tlp').value=r.phone;mark('tlp');got.push(t('lTlp'))}
+  if(r.courier&&BR.some(b=>b[1]===r.courier)){pickJasa(r.courier);got.push(t('lJasa'))}
+  if(Number(r.koli)>=1){$('koli').value=r.koli;mark('koli');got.push(t('lKoli'))}
+  const s=$('aiStat');s.className='aistat'+(got.length?'':' warn');s.textContent=got.length?t('aiDone',got.join(', ')):t('aiNone')}
+$('aiBtn').onclick=()=>{if(!SET.aiReady){toast(t('aiOff'),1);return}$('aiF').click()};
+$('aiF').onchange=async()=>{const f=$('aiF').files[0];$('aiF').value='';if(!f)return;
+  const b=$('aiBtn'),s=$('aiStat');b.disabled=true;b.textContent=t('aiReading');s.className='aistat';s.textContent='';
+  try{const d=await compress(f,1280,.8);if(!d)throw new Error(t('photoFail'));fillAi(await aiCall(d,'form'))}
+  catch(e){s.className='aistat warn';s.textContent=(e&&e.message)||String(e)}
+  b.disabled=false;b.textContent=t('aiBtn')};
+
+// ===== Tambah invoice (tampil 1, tambah sampai 3) =====
+let nInv=1;
+$('addInv').onclick=()=>{if(nInv>=3)return;nInv++;$('iv'+nInv).classList.remove('hide');if(nInv===3)$('addInv').classList.add('hide');$('inv'+nInv).focus()};
+function resetInv(){nInv=1;['iv2','iv3'].forEach(i=>$(i).classList.add('hide'));$('addInv').classList.remove('hide')}
+
+// ===== Tambah foto barang (tampil 1, tambah sampai 3) =====
+let nFoto=1;
+$('addFoto').onclick=()=>{if(nFoto>=3)return;nFoto++;$('fb'+nFoto).classList.remove('hide');if(nFoto===3)$('addFoto').classList.add('hide')};
+function showFoto(n){while(nFoto<n){nFoto++;$('fb'+nFoto).classList.remove('hide')}if(nFoto>=3)$('addFoto').classList.add('hide')}
+function resetFoto(){nFoto=1;['fb2','fb3'].forEach(i=>$(i).classList.add('hide'));$('addFoto').classList.remove('hide')}
+
+// ===== Teks berjalan NB =====
+function nbSpeed(){const x=$('nbT');x.style.animationDuration=Math.max(14,x.offsetWidth/70)+'s'}
+addEventListener('resize',()=>{if(!$('nb').classList.contains('hide'))nbSpeed()});
+
+// ===== Hapus data (wajib verifikasi NIP) =====
+let DEL=null;
+$('tb').addEventListener('click',e=>{const b=e.target.closest('.del');if(!b)return;DEL={row:+b.dataset.row,inv:b.dataset.inv};
+  $('dlgT').textContent=t('dlgTitle',DEL.inv||t('noInv'));
+  $('dlgNip').value='';$('dlgErr').textContent='';$('dlg').classList.remove('hide');$('dlgNip').focus()});
+$('dlgN').onclick=()=>{$('dlg').classList.add('hide');DEL=null};
+function doDel(){if(!DEL)return;const v=$('dlgNip').value.trim();
+  if(!v){$('dlgErr').textContent=t('needNip');return}
+  if(v!==NIP){$('dlgErr').textContent=t('nipMismatch');return}
+  const d=DEL,y=$('dlgY');y.disabled=true;$('dlgErr').textContent='';
+  google.script.run.withSuccessHandler(()=>{y.disabled=false;$('dlg').classList.add('hide');DEL=null;
+    Object.keys(DUPC).forEach(k=>delete DUPC[k]);toast(t('delOk'));load()})
+   .withFailureHandler(e=>{y.disabled=false;$('dlgErr').textContent=e.message||t('delFail')}).deleteRow(d.row,d.inv,NIP,PASS,v)}
+$('dlgY').onclick=doDel;
+$('dlgNip').addEventListener('keydown',e=>{if(e.key==='Enter')doDel()});
+
+// ===== Pengaturan dari admin diterapkan ke halaman =====
+function applySet(){
+  if(SET.nb)$('nbT').textContent=SET.nb;
+  if(!$('nb').classList.contains('hide'))nbSpeed();
+  const mb=$('mbanner');mb.textContent=SET.maint?SET.maintMsg:'';mb.classList.toggle('hide',!SET.maint);
+  $('aiBox').classList.toggle('hide',!SET.aiReady);
+  idleReset();
+  const l=(PL&&I[PL])?PL:(SET.lang||'id');if(l!==LANG)setLang(l)}
+function refreshSettings(){google.script.run.withSuccessHandler(s=>{SET=Object.assign(SET,s);applySet()}).withFailureHandler(()=>{}).getPublicSettings()}
+refreshSettings();
+// Segarkan pengaturan tiap 60 detik (teks suara, NB, maintenance, IA) tanpa mereset timer keluar-otomatis
+setInterval(()=>{if(document.hidden)return;
+  google.script.run.withSuccessHandler(s=>{SET=Object.assign(SET,s);
+    if(SET.nb)$('nbT').textContent=SET.nb;
+    const mb=$('mbanner');mb.textContent=SET.maint?SET.maintMsg:'';mb.classList.toggle('hide',!SET.maint);
+    $('aiBox').classList.toggle('hide',!SET.aiReady)})
+   .withFailureHandler(()=>{}).getPublicSettings()},60000);
+let idleT=null;
+function idleReset(){clearTimeout(idleT);if(ME&&SET.idle>0)idleT=setTimeout(()=>{toast(t('idleOut'),1);$('logout').click()},SET.idle*60000)}
+['click','keydown','touchstart','mousemove'].forEach(ev=>document.addEventListener(ev,idleReset,{passive:true}));
+
+// ===== Menu samping =====
+const SD=$('side');
+const isAdm=()=>ME&&ME.role==='admin';
+function updateSide(){$('sideTab').style.display=ME?'block':'none'}
+function sideOpen(){if(!ME)return;
+  $('prof').innerHTML='<small>'+(isAdm()?t('rADM'):t('rPET'))+'</small><b>'+esc(ME.nama)+'</b><em>NIP '+esc(ME.nip)+'</em>';
+  SD.querySelectorAll('.adm').forEach(b=>b.classList.toggle('hide',!isAdm()));
+  SD.classList.add('open');$('sideTab').style.visibility='hidden'}
+function sideClose(){SD.classList.remove('open');$('sideTab').style.visibility='visible'}
+$('sideTab').addEventListener('click',e=>{e.stopPropagation();SD.classList.contains('open')?sideClose():sideOpen()});
+document.addEventListener('click',()=>{if(SD.classList.contains('open'))sideClose()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&SD.classList.contains('open'))sideClose()});
+$('mOut').onclick=()=>{$('logout').click()};
+$('mLang').onclick=()=>{const i=LANGS.findIndex(x=>x[0]===LANG),n=LANGS[(i+1)%LANGS.length];savePL(n[0]);setLang(n[0]);toast(t('langSet',n[1]))};
+
+// ===== Panel menu =====
+const gs=(fn,args,ok,bad)=>google.script.run.withSuccessHandler(ok).withFailureHandler(e=>{
+  if(/salah/.test(e.message)&&!bad){toast(e.message,1);relock();return}(bad||(x=>toast(t('saveFail')+(x.message||x),1)))(e)})[fn](...args);
+function pOpen(tt,h){$('pT').textContent=tt;$('pBody').innerHTML=h;$('pnl').classList.remove('hide')}
+function pClose(){$('pnl').classList.add('hide')}
+$('pX').onclick=pClose;
+function needAdm(){if(!isAdm()){toast(t('admOnly'),1);return false}return true}
+
+// --- User Terdaftar ---
+function pUsers(){pOpen(t('mUsers'),'<div class="empty">'+t('loadingP')+'</div>');
+  gs('listUsers',[NIP,PASS],list=>{const a=isAdm();
+    $('pBody').innerHTML='<div id="rsBox" class="note hide"><b id="rsT"></b><div class="nrow" style="margin-top:8px"><input id="rsPw" type="text" placeholder="'+esc(t('rsPh'))+'" autocomplete="off"><button class="btn okb" id="rsGo" type="button">'+t('save')+'</button><button class="btn gray okb" id="rsNo" type="button">'+t('cancel')+'</button></div></div>'+
+    '<p style="margin:0 0 10px;color:var(--mut);font-size:13px">'+t('usersTot',list.length)+'</p><div class="wrap"><table><thead><tr><th>NIP</th><th>'+t('cName')+'</th><th>'+t('cRole')+'</th><th>'+t('cStat')+'</th><th>'+t('cCreated')+'</th>'+(a?'<th>'+t('hAksi')+'</th>':'')+'</tr></thead><tbody>'+
+    list.map(u=>'<tr><td>'+esc(u.nip)+'</td><td>'+esc(u.nama)+'</td><td><span class="badge'+(u.role==='admin'?'':' p')+'">'+(u.role==='admin'?t('rADM'):t('rPET'))+'</span></td><td><span class="badge'+(u.aktif?'':' off')+'">'+(u.aktif?t('sAct'):t('sOff'))+'</span></td><td>'+esc(u.dibuat)+'</td>'+
+    (a?'<td><button class="smb" data-act="tog" data-n="'+esc(u.nip)+'" data-a="'+(u.aktif?1:0)+'">'+(u.aktif?t('bOff'):t('bOn'))+'</button><button class="smb" data-act="rs" data-n="'+esc(u.nip)+'" data-nm="'+esc(u.nama)+'">'+t('bRs')+'</button></td>':'')+'</tr>').join('')+'</tbody></table></div>'})}
+let RS=null;
+$('pBody').addEventListener('click',e=>{const b=e.target.closest('[data-act]');
+  if(b){const act=b.dataset.act;
+    if(act==='tog'){if(!needAdm())return;b.disabled=true;gs('setUserActive',[NIP,PASS,b.dataset.n,b.dataset.a!=='1'],()=>{toast(t('statusUpd'));pUsers()},x=>{b.disabled=false;toast(x.message,1)})}
+    else if(act==='rs'){RS=b.dataset.n;$('rsT').textContent=t('rsFor',b.dataset.nm,RS);$('rsPw').value='';$('rsBox').classList.remove('hide');$('rsPw').focus()}}
+  if(e.target.id==='rsNo'){RS=null;$('rsBox').classList.add('hide')}
+  if(e.target.id==='rsGo'){const pw=$('rsPw').value;if(pw.length<6){toast(t('pass6'),1);return}
+    gs('resetUserPass',[NIP,PASS,RS,pw],()=>{toast(t('rsOk'));RS=null;$('rsBox').classList.add('hide')},x=>toast(x.message,1))}});
+
+// --- Create User (hanya admin) ---
+function pCreate(){if(!needAdm())return;
+  pOpen(t('mCreate'),'<div class="note">'+t('cuNote')+'</div>'+
+  '<label for="cuN">'+t('cuN')+'</label><input id="cuN" inputmode="numeric" autocomplete="off" placeholder="'+esc(t('cuNp'))+'">'+
+  '<label for="cuNm">'+t('cName')+'</label><input id="cuNm" autocomplete="off" maxlength="40" placeholder="'+esc(t('cuNmp'))+'">'+
+  '<label for="cuP">'+t('cuP')+'</label><input id="cuP" type="text" autocomplete="off" placeholder="'+esc(t('cuPp'))+'">'+
+  '<div class="err" id="cuE"></div><button class="btn save" id="cuGo" type="button" style="margin-top:8px">'+t('cuGo')+'</button>')}
+// --- Ganti PASS sendiri ---
+function pPw(){pOpen(t('mPw'),'<label for="pw1">'+t('pw1')+'</label><input id="pw1" type="password" autocomplete="new-password">'+
+  '<label for="pw2">'+t('pw2')+'</label><input id="pw2" type="password" autocomplete="new-password"><div class="err" id="pwE"></div>'+
+  '<button class="btn save" id="pwGo" type="button" style="margin-top:8px">'+t('pwGo')+'</button>')}
+$('pBody').addEventListener('click',e=>{
+  if(e.target.id==='cuGo'){const n=$('cuN').value.trim(),nm=$('cuNm').value.trim(),pw=$('cuP').value;
+    if(!n||!nm||!pw){$('cuE').textContent=t('cuReq');return}
+    const b=e.target;b.disabled=true;$('cuE').textContent='';
+    gs('createUser',[NIP,PASS,{nip:n,nama:nm,pass:pw}],()=>{b.disabled=false;toast(t('cuOk',nm));$('cuN').value=$('cuNm').value=$('cuP').value=''},x=>{b.disabled=false;$('cuE').textContent=x.message})}
+  if(e.target.id==='pwGo'){const a=$('pw1').value,c=$('pw2').value;
+    if(a.length<6){$('pwE').textContent=t('pass6');return}
+    if(a!==c){$('pwE').textContent=t('pwSame');return}
+    const b=e.target;b.disabled=true;
+    gs('changePassword',[NIP,PASS,a],()=>{b.disabled=false;PASS=a;toast(t('pwOk'));pClose()},x=>{b.disabled=false;$('pwE').textContent=x.message})}});
+
+// --- Pengaturan (hanya admin) ---
+function pSet(){if(!needAdm())return;pOpen(t('mSet'),'<div class="empty">'+t('loadingP')+'</div>');
+  gs('getSettings',[NIP,PASS],s=>{
+    const sw=(id,tt,d,v)=>'<div class="row2"><div><b>'+t(tt)+'</b><small>'+t(d)+'</small></div><input type="checkbox" id="'+id+'"'+(v?' checked':'')+'></div>';
+    const nm=(id,tt,d,v,mn,mx)=>'<div class="row2"><div><b>'+t(tt)+'</b><small>'+t(d)+'</small></div><input type="number" id="'+id+'" min="'+mn+'" max="'+mx+'" value="'+v+'"></div>';
+    $('pBody').innerHTML=
+    '<div class="grp">'+t('grpLang')+'</div>'+
+    '<div class="row2"><div><b>'+t('sLangT')+'</b><small>'+t('sLangD')+'</small></div><select id="sLang">'+LANGS.map(l=>'<option value="'+l[0]+'"'+(s.lang===l[0]?' selected':'')+'>'+l[1]+'</option>').join('')+'</select></div>'+
+    '<div class="grp">'+t('grpAi')+'</div>'+
+    sw('sAiOn','sAiOnT','sAiOnD',s.aiOn)+
+    '<div class="grp">'+t('grpVoice')+'</div>'+
+    '<label for="sVoice">'+t('sVoiceL')+'</label><textarea id="sVoice" rows="3" maxlength="300">'+esc(s.voiceText||DEFV)+'</textarea>'+
+    '<p class="vhint">'+t('sVoiceD')+'</p><button type="button" class="smb" id="sVoiceTest">'+t('sVoiceTest')+'</button>'+
+    '<div class="grp">'+t('grpIn')+'</div>'+
+    sw('sMaint','sMaintT','sMaintD',s.maint)+
+    '<label for="sMsg">'+t('sMsgL')+'</label><input id="sMsg" maxlength="200" value="'+esc(s.maintMsg)+'">'+
+    sw('sDup','sDupT','sDupD',s.dupInv)+
+    sw('sSer','sSerT','sSerD',s.reqSertim)+
+    nm('sTlp','sTlpT','sTlpD',s.minTlp,5,15)+
+    nm('sKol','sKolT','sKolD',s.maxKoli,0,9999)+
+    '<div class="grp">'+t('grpFoto')+'</div>'+
+    nm('sImx','sImxT','sImxD',s.imgMax,600,2000)+
+    nm('sIq','sIqT','sIqD',s.imgQ,40,95)+
+    '<div class="grp">'+t('grpSec')+'</div>'+
+    nm('sIdle','sIdleT','sIdleD',s.idle,0,240)+
+    '<label for="sNb">'+t('sNbL')+'</label><textarea id="sNb" rows="3" maxlength="300">'+esc(s.nb)+'</textarea>'+
+    '<div class="err" id="sE"></div><button class="btn save" id="sSave" type="button" style="margin-top:8px">'+t('sSave')+'</button>'})}
+$('pBody').addEventListener('click',e=>{if(e.target.id!=='sVoiceTest')return;
+  const tpl=$('sVoice').value.trim()||DEFV;try{window.speechSynthesis.cancel()}catch(x){}
+  if(VOL<=0)toast(t('volOff'),1);speak(voiceMsg(tpl,'Budi',spokenInv('INV123456')))});
+$('pBody').addEventListener('click',e=>{if(e.target.id!=='sSave')return;
+  const o={maint:$('sMaint').checked,maintMsg:$('sMsg').value,dupInv:$('sDup').checked,reqSertim:$('sSer').checked,minTlp:$('sTlp').value,maxKoli:$('sKol').value,
+    imgMax:$('sImx').value,imgQ:$('sIq').value,idle:$('sIdle').value,nb:$('sNb').value,
+    lang:$('sLang').value,aiOn:$('sAiOn').checked,voiceText:$('sVoice').value};
+  const b=e.target;b.disabled=true;
+  gs('saveSettings',[NIP,PASS,o],s=>{b.disabled=false;SET=Object.assign(SET,s);applySet();toast(t('sSaved'));pSet()},x=>{b.disabled=false;$('sE').textContent=x.message})});
+
+$('pBody').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='rsPw')$('rsGo').click()});
+
+// --- Record user yang menghapus data (hanya admin) ---
+function pLog(){if(!needAdm())return;pOpen(t('mLog'),'<div class="empty">'+t('loadingP')+'</div>');
+  gs('getLog',[NIP,PASS],list=>{
+    if(!list.length){$('pBody').innerHTML='<div class="empty">'+t('logNone')+'</div>';return}
+    const F=['lTgl','lJam','lJasa','lDrv','lTlp','lI1','lI2','lI3','lKoli','lF1','lF2','lF3','lFD'];
+    $('pBody').innerHTML='<p style="margin:0 0 10px;color:var(--mut);font-size:13px">'+t('logCount',list.length)+'</p>'+
+    list.map(l=>'<div class="lg2"><h4>'+esc(l.nama)+' <span>NIP '+esc(l.nip)+' &middot; '+esc(l.role)+' &middot; '+t('logDel',esc(l.baris))+' &middot; '+esc(l.waktu)+'</span></h4>'+
+      '<div class="kv">'+F.map((f,i)=>'<div><small>'+t(f)+'</small>'+(i>=9?photo(l.data[i]):(esc(l.data[i])||'-'))+'</div>').join('')+'</div>'+
+      '<div class="err lgerr"></div>'+
+      '<div class="lgact"><button type="button" class="smb ok" data-lga="restore" data-id="'+l.id+'" data-w="'+esc(l.waktu)+'" data-inv="'+esc(l.inv)+'">&#x21BA; '+t('lgRestore')+'</button>'+
+      '<button type="button" class="del" data-lga="purge" data-id="'+l.id+'" data-w="'+esc(l.waktu)+'" data-inv="'+esc(l.inv)+'"><svg class="mic"><use href="#m-trash"/></svg> '+t('lgPurge')+'</button></div></div>').join('')})}
+$('pBody').addEventListener('click',e=>{const b=e.target.closest('[data-lga]');if(!b||b.disabled)return;
+  e.stopPropagation();
+  const a=b.dataset.lga,card=b.closest('.lg2'),er=card.querySelector('.lgerr');er.textContent='';
+  card.querySelectorAll('[data-lga]').forEach(x=>{if(!x.dataset.orig)x.dataset.orig=x.innerHTML});
+  // Hapus sampah = permanen: ketuk pertama minta konfirmasi (4 detik), ketuk kedua menjalankan
+  if(a==='purge'&&b.dataset.arm!=='1'){b.dataset.arm='1';b.textContent=t('lgSure');
+    setTimeout(()=>{if(b.isConnected&&b.dataset.arm==='1'&&!b.disabled){b.dataset.arm='';b.innerHTML=b.dataset.orig}},4000);return}
+  const btns=card.querySelectorAll('button');btns.forEach(x=>x.disabled=true);b.textContent=t('loadingP');
+  const reset=()=>{btns.forEach(y=>{y.disabled=false;if(y.dataset.orig)y.innerHTML=y.dataset.orig});b.dataset.arm=''};
+  google.script.run
+   .withSuccessHandler(r=>{toast(a==='restore'?t('lgRestored'):t('lgPurged',(r&&r.files)||0));
+     if(a==='restore'&&CURTAB==='mon'&&PASS)load(true);pLog()})
+   .withFailureHandler(x=>{reset();const m=(x&&x.message)||String(x);er.textContent=m;toast(m,1)})
+   [a==='restore'?'restoreDeleted':'purgeDeleted'](NIP,PASS,+b.dataset.id,b.dataset.w,b.dataset.inv)});
+
+$('mUsers').onclick=pUsers;$('mCreate').onclick=pCreate;$('mSet').onclick=pSet;$('mLog').onclick=pLog;$('mPw').onclick=pPw;
+
+if(PL&&I[PL])setLang(PL);else applyLang();
+</script></body></html>
