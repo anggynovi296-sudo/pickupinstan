@@ -479,7 +479,7 @@ body:has(#vMon:not(.hide) #monBody:not(.hide)) thead th{position:sticky;top:0;z-
 <script>
 /* ===== SAMBUNGAN KE APPS SCRIPT (halaman ini dihosting di GitHub Pages) =====
    Isi API_URL dengan URL deployment Apps Script Anda (yang berakhiran /exec). Hanya baris ini yang perlu diubah. */
-const API_URL='PASTE_URL_EXEC_APPS_SCRIPT_DI_SINI';
+const API_URL='https://script.google.com/macros/s/AKfycbw8WHiYe76UA4r3YRPANEqKuXBQ6RGE_SjJwiuxVoNL65NfI16SGq8HefYr2o4Gh33MjA/exec';
 (function(){
   function mk(ok,bad){return new Proxy({},{get:function(_,name){
     if(name==='withSuccessHandler')return function(f){return mk(f,bad)};
