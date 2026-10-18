@@ -1330,9 +1330,9 @@ if(PL&&I[PL])setLang(PL);else applyLang();
 .lscanline{animation-duration:3s!important}
 </style>
 <script>
-/* ===== DRAF OTOMATIS + RINGAN (satu blok, tempel sebelum </body>) ===== */
+/* ===== DRAF OTOMATIS + RINGAN (v2) ===== */
 (function(){
-const DK='azko_draft_v1',MAXAGE=12*3600*1000,
+const T0=Date.now(),DK='azko_draft_v1',MAXAGE=12*3600*1000,
       IDS=['drv','tlp','inv1','inv2','inv3','koli'],PK=['f1','f2','f3','f4'];
 let tm=null,ready=false;
 const dirty=()=>IDS.some(i=>$(i).value.trim())||PK.some(k=>PH[k])||!!jasa;
@@ -1378,8 +1378,8 @@ const _cf=clearForm;clearForm=function(){_cf();ready=true;clearTimeout(tm);
 const _fa=fillAi;fillAi=function(r){_fa(r);later()};
 const _lv=liveOk;liveOk=function(x){_lv(x);setTimeout(later,700)};
 
-/* Ringan: pembaca OCR tidak diunduh saat halaman baru dibuka, hanya saat benar-benar dipakai scan */
-const _lo=loadOcr;loadOcr=function(){return performance.now()<4000&&!OCRW.length?Promise.resolve(OCRW):_lo()};
+/* Ringan: pemuatan OCR otomatis di 3 detik pertama (pemanasan) dilewati; OCR tetap dimuat saat scan dipakai */
+const _lo=loadOcr;loadOcr=function(){return(Date.now()-T0<3000&&!OCRW.length)?Promise.resolve(OCRW):_lo()};
 
 const f=$('vIn');
 ['input','change'].forEach(e=>f.addEventListener(e,later));
@@ -1387,16 +1387,20 @@ const f=$('vIn');
 addEventListener('pagehide',save);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
 
-/* Tombol Back: bila masih ada isian, tahan di halaman ini (draf tetap aman) */
-try{history.pushState({azko:1},'',location.href)}catch(e){}
+/* Tombol Back: bila masih ada isian, Back pertama hanya memperingatkan (draf aman), Back kedua dalam 2 detik keluar.
+   pushState baru dipasang setelah sentuhan pertama, karena Chrome mengabaikan riwayat yang dibuat tanpa interaksi. */
+let armed=false,lastBack=0;
+const push=()=>{try{history.pushState({azko:1},'',location.href)}catch(e){}};
+const arm=()=>{if(armed)return;armed=true;push()};
+['pointerdown','keydown','touchstart'].forEach(ev=>addEventListener(ev,arm,{once:true,passive:true}));
 addEventListener('popstate',()=>{
-  if(dirty()){
-    try{history.pushState({azko:1},'',location.href)}catch(e){}
-    save();
-    toast(LANG==='en'?'Unsubmitted data is safe (draft). Tap SUBMIT when done.':'Data yang belum disubmit tetap aman (draf). Tekan SUBMIT bila sudah selesai.');
+  const n=Date.now();
+  if(dirty()&&n-lastBack>2000){
+    lastBack=n;push();save();
+    toast(LANG==='en'?'Draft is saved. Press Back again to leave.':'Draf tersimpan. Tekan Back sekali lagi untuk keluar.');
   }else history.back()});
 
 restore();
 })();
-</script></body></html>
-
+</script>
+</body></html>
