@@ -1322,5 +1322,81 @@ $('pBody').addEventListener('click',e=>{const b=e.target.closest('[data-lga]');i
 $('mUsers').onclick=pUsers;$('mCreate').onclick=pCreate;$('mSet').onclick=pSet;$('mLog').onclick=pLog;$('mPw').onclick=pPw;
 
 if(PL&&I[PL])setLang(PL);else applyLang();
+</script><style>
+.azlogo{animation:pop .6s both!important}
+.nbT{will-change:auto!important}
+.stat,.opt,.sideI,input.pop{transition:none!important}
+.stat:hover,.opt:hover{transform:none!important}
+.lscanline{animation-duration:3s!important}
+</style>
+<script>
+/* ===== DRAF OTOMATIS + RINGAN (satu blok, tempel sebelum </body>) ===== */
+(function(){
+const DK='azko_draft_v1',MAXAGE=12*3600*1000,
+      IDS=['drv','tlp','inv1','inv2','inv3','koli'],PK=['f1','f2','f3','f4'];
+let tm=null,ready=false;
+const dirty=()=>IDS.some(i=>$(i).value.trim())||PK.some(k=>PH[k])||!!jasa;
+
+function idb(fn,mode){return new Promise((ok,no)=>{
+  const q=indexedDB.open('azko_draft',1);
+  q.onupgradeneeded=()=>q.result.createObjectStore('p');
+  q.onerror=()=>no(q.error);
+  q.onsuccess=()=>{const db=q.result,tx=db.transaction('p',mode||'readwrite'),r=fn(tx.objectStore('p'));
+    tx.oncomplete=()=>{db.close();ok(r&&r.result)};
+    tx.onerror=tx.onabort=()=>{db.close();no(tx.error)}}})}
+
+function save(){if(!ready)return;
+  try{
+    if(!dirty()){localStorage.removeItem(DK);idb(s=>s.clear()).catch(()=>{});return}
+    const o={ts:Date.now(),jasa:jasa,ni:nInv,nf:nFoto,v:{}};
+    IDS.forEach(i=>o.v[i]=$(i).value);
+    localStorage.setItem(DK,JSON.stringify(o));
+    idb(s=>{PK.forEach(k=>{PH[k]?s.put(PH[k],k):s.delete(k)})}).catch(()=>{});
+  }catch(e){}}
+function later(){if(!ready)return;clearTimeout(tm);tm=setTimeout(save,500)}
+
+async function restore(){
+  try{
+    const o=JSON.parse(localStorage.getItem(DK)||'null');
+    if(!o||Date.now()-o.ts>MAXAGE||dirty()){ready=true;return}
+    IDS.forEach(i=>{if(o.v&&o.v[i])$(i).value=o.v[i]});
+    if(o.jasa)pickJasa(o.jasa);
+    if(o.ni>1)showInv(o.ni);
+    if(o.nf>1)showFoto(o.nf);
+    for(const k of PK){
+      const d=await idb(s=>s.get(k),'readonly').catch(()=>null);
+      if(d)setPhoto(k,d);
+    }
+    toast(LANG==='en'?'Draft restored. Continue, then tap SUBMIT.':'Draf input dipulihkan. Lanjutkan lalu tekan SUBMIT.');
+  }catch(e){}
+  ready=true}
+
+/* Bungkus fungsi lama agar draf ikut tersimpan / terhapus */
+const _sp=setPhoto;setPhoto=function(k,d){_sp(k,d);later()};
+const _cf=clearForm;clearForm=function(){_cf();ready=true;clearTimeout(tm);
+  try{localStorage.removeItem(DK)}catch(e){}idb(s=>s.clear()).catch(()=>{})};
+const _fa=fillAi;fillAi=function(r){_fa(r);later()};
+const _lv=liveOk;liveOk=function(x){_lv(x);setTimeout(later,700)};
+
+/* Ringan: pembaca OCR tidak diunduh saat halaman baru dibuka, hanya saat benar-benar dipakai scan */
+const _lo=loadOcr;loadOcr=function(){return performance.now()<4000&&!OCRW.length?Promise.resolve(OCRW):_lo()};
+
+const f=$('vIn');
+['input','change'].forEach(e=>f.addEventListener(e,later));
+['picker','addInv','addFoto'].forEach(i=>$(i).addEventListener('click',later));
+addEventListener('pagehide',save);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
+
+/* Tombol Back: bila masih ada isian, tahan di halaman ini (draf tetap aman) */
+try{history.pushState({azko:1},'',location.href)}catch(e){}
+addEventListener('popstate',()=>{
+  if(dirty()){
+    try{history.pushState({azko:1},'',location.href)}catch(e){}
+    save();
+    toast(LANG==='en'?'Unsubmitted data is safe (draft). Tap SUBMIT when done.':'Data yang belum disubmit tetap aman (draf). Tekan SUBMIT bila sudah selesai.');
+  }else history.back()});
+
+restore();
+})();
 </script></body></html>
 
