@@ -1508,4 +1508,46 @@ $('tb').addEventListener('click',e=>{if(e.target.id==='moreRows'){ROWLIM+=150;dr
 $('stats').addEventListener('click',()=>{ROWLIM=150});
 $('reset').addEventListener('click',()=>{ROWLIM=150});
 </script>
+<style>
+/* ===== SCANNER ANTI GAGAL ===== */
+.lbar{flex-wrap:wrap}
+.lbar .btn{flex:1 1 30%;min-width:0}
+.ltip{max-height:34%;overflow:auto;font-size:13px;line-height:1.35;z-index:3}
+#lNative.pri{background:linear-gradient(180deg,#19b56a,#0a6e3d);color:#fff;box-shadow:0 5px 0 #065029}
+</style>
+<script>
+/* ===== SCANNER ANTI GAGAL: coba ulang otomatis + kamera HP sebagai cadangan ===== */
+let CAMRETRY=0,CAMRT=null;
+const INAPP=/; wv\)|FBAN|FBAV|Instagram|Line\/|MicroMessenger|TikTok|Snapchat/i.test(navigator.userAgent);
+const camReset=()=>{CAMRETRY=0;clearTimeout(CAMRT)};
+document.querySelectorAll('.sc').forEach(b=>b.addEventListener('click',camReset));
+$('lX').addEventListener('click',camReset);
+$('lRetry').addEventListener('click',camReset);
+
+camErr=function(e){
+  clearTimeout(CAMRT);
+  const n=(e&&e.name)||'';
+  const en=LANG==='en';
+  camBtns();$('lNative').classList.add('pri');$('lNative').classList.remove('gray');
+  if(INAPP){tip(en?'This page is open inside another app, which often blocks the camera. Open the link in Chrome, or tap Use phone camera.':'Halaman ini dibuka di dalam aplikasi lain, yang sering memblokir kamera. Buka link di Chrome, atau tekan Pakai kamera HP.','warn');return}
+  if(typeof e==='string'){tip(e,'warn');return}
+  if(n==='NotAllowedError'||n==='SecurityError'){
+    camDiag().then(d=>{
+      let m;
+      if(d.pol==='tidak')m=t('camPol');
+      else if(d.st==='denied')m=t('camDen');
+      else if(d.st==='prompt'){
+        m=en?'The permission prompt cannot appear. Close ALL screen overlays (chat bubbles, floating buttons, screen recorders, screen filters). Retrying automatically... or tap Use phone camera.'
+            :'Kotak izin kamera tertutup. Tutup SEMUA balon/overlay layar (bubble chat, tombol melayang, perekam layar, filter layar). Mencoba otomatis... atau tekan Pakai kamera HP.';
+        if(CAMRETRY<6&&!$('lscan').classList.contains('hide')){
+          CAMRETRY++;
+          CAMRT=setTimeout(()=>{if(!$('lscan').classList.contains('hide')&&!L.run)openLive(sTarget)},2500)}}
+      else m=t('camSys');
+      tip(m,'warn')});
+    return}
+  let m=t('camFail');
+  if(n==='NotFoundError'||n==='OverconstrainedError')m=t('camNF');
+  else if(n==='NotReadableError')m=t('camBusy');
+  tip(m,'warn')};
+</script>
 </body></html>
