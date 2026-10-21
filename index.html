@@ -1470,4 +1470,42 @@ const _ol=openLive;
 openLive=async function(id){await _ol(id);
   try{if(L.track&&L.run)await L.track.applyConstraints({width:{ideal:2560},height:{ideal:1440}})}catch(e){}};
 </script>
+<style>
+/* ===== PERBAIKAN APLIKASI RINGAN ===== */
+.azlogo,.stitle span,.ssub,.sbtns,.lok{animation:none!important}
+.azlogo,.stitle span,.ssub,.sbtns{opacity:1!important}
+.stitle{perspective:none!important}
+.stitle span,.welcome,.sideT,h1,.nbT{text-shadow:none!important}
+.welcome{transform:none!important}
+.nbw,.nb{transform:none!important;perspective:none!important}
+.picker,.stats{perspective:none!important}
+header,section,.stat,.opt,.cambox,.pbox,.lg2,.prof,.sideI,#side{box-shadow:none!important}
+.stat,.opt,.sideI,.btn,input.pop,.tab{transition:none!important}
+.stat:hover,.opt:hover{transform:none!important}
+.stat.on{transform:none!important;box-shadow:0 0 0 3px var(--acc)!important}
+.opt.on{box-shadow:0 0 0 3px rgba(15,157,88,.35)!important}
+</style>
+<script>
+/* ===== PERBAIKAN APLIKASI RINGAN: tabel dibatasi ===== */
+let ROWLIM=150;
+draw=function(){
+  const base=ALL.filter(inRange).filter(qMatch),rows=KPI==='all'?base:base.filter(r=>key(r.jasa)===KPI);
+  const show=rows.slice(0,ROWLIM);
+  let h=show.map((r,i)=>{const k=key(r.jasa);
+    return '<tr><td class="no">'+(i+1)+'</td><td>'+esc(r.tanggal)+'</td><td>'+esc(r.jam)+'</td><td><div class="jasa">'+logo(k)+esc(r.jasa)+'</div></td><td>'+esc(r.driver)+'</td><td>'+esc(r.telp)+
+    '</td><td>'+esc(r.inv1)+'</td><td>'+esc(r.inv2)+'</td><td>'+esc(r.inv3)+'</td><td>'+esc(r.koli)+'</td><td>'+photo(r.foto1)+'</td><td>'+photo(r.foto2)+'</td><td>'+photo(r.foto3)+'</td><td>'+photo(r.fotoS)+
+    '</td><td><button class="del" data-row="'+r.row+'" data-inv="'+esc(r.inv1)+'">'+t('del')+'</button></td></tr>'}).join('');
+  if(rows.length>ROWLIM)h+='<tr><td colspan="15" style="text-align:center;padding:14px"><button type="button" class="btn gray" id="moreRows" style="padding:10px 22px">Tampilkan lebih banyak ('+(rows.length-ROWLIM)+' lagi)</button></td></tr>';
+  $('tb').innerHTML=h;
+  $('empty').style.display=rows.length?'none':'block';
+  const c=k=>base.filter(r=>key(r.jasa)===k).length;
+  const st=(k,lg,n,tx)=>'<div class="stat'+(KPI===k?' on':'')+'" data-k="'+k+'" role="button" tabindex="0">'+lg+'<div><b>'+n+'</b><span>'+tx+'</span></div></div>';
+  $('stats').innerHTML=st('all',logo('all'),base.length,t('total'))+BR.map(b=>st(b[0],logo(b[0]),c(b[0]),b[1])).join('');
+};
+$('tb').addEventListener('click',e=>{if(e.target.id==='moreRows'){ROWLIM+=150;draw()}});
+/* Ganti kata kunci / tanggal / filter -> kembali ke 150 baris pertama */
+['q','dFrom','dTo'].forEach(i=>$(i).addEventListener('input',()=>{ROWLIM=150}));
+$('stats').addEventListener('click',()=>{ROWLIM=150});
+$('reset').addEventListener('click',()=>{ROWLIM=150});
+</script>
 </body></html>
