@@ -1406,4 +1406,34 @@ addEventListener('popstate',()=>{
 restore();
 })();
 </script>
+<script>
+/* ===== PERBAIKAN NOTIFIKASI SUARA ===== */
+let SQ=[],SPK=false,GEN=0;
+function chunks(txt){return String(txt).match(/[^.,!?;]+[.,!?;]?/g)||[String(txt)]}
+function speakNext(){
+  if(!SQ.length){SPK=false;return}
+  SPK=true;const g=GEN,ss=window.speechSynthesis;
+  const u=new SpeechSynthesisUtterance(SQ.shift().trim());
+  u.lang='id-ID';u.rate=.95;u.pitch=1;u.volume=VOL/100;
+  if(!VOICES.length)loadVoices();
+  const v=VOICES.find(x=>/^id[-_]ID$/i.test(x.lang))||VOICES.find(x=>/^id/i.test(x.lang));if(v)u.voice=v;
+  let fin=false,wd=null;
+  const next=()=>{if(fin||g!==GEN)return;fin=true;clearTimeout(wd);speakNext()};
+  wd=setTimeout(()=>{try{ss.cancel()}catch(e){}next()},15000);
+  u.onend=next;u.onerror=next;
+  try{ss.resume();ss.speak(u)}catch(e){next()}}
+speak=function(txt,now){try{const ss=window.speechSynthesis;if(!ss||VOL<=0||!txt)return;
+  if(now){GEN++;SQ=[];SPK=false;ss.cancel()}
+  SQ.push(...chunks(txt));
+  if(now)setTimeout(()=>{if(!SPK)speakNext()},120);else if(!SPK)speakNext()}catch(e){}};
+primeVoice=function(){try{const ss=window.speechSynthesis;if(SPK||SQ.length)return;
+  ss.cancel();ss.resume();const p=new SpeechSynthesisUtterance('ya');p.volume=0;p.lang='id-ID';ss.speak(p)}catch(e){}};
+
+/* ===== Layar monitoring tetap menyala (agar suara data baru tidak terlewat) ===== */
+let WL=null;
+async function wakeOn(){try{if('wakeLock' in navigator&&CURTAB==='mon'&&ME&&!WL){
+  WL=await navigator.wakeLock.request('screen');WL.addEventListener('release',()=>{WL=null})}}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)wakeOn()});
+setInterval(wakeOn,30000);
+</script>
 </body></html>
