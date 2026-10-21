@@ -1436,4 +1436,38 @@ async function wakeOn(){try{if('wakeLock' in navigator&&CURTAB==='mon'&&ME&&!WL)
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)wakeOn()});
 setInterval(wakeOn,30000);
 </script>
+<script>
+/* ===== SCANNER BARCODE LEBIH SENSITIF ===== */
+const pickInv=s=>{const m=cleanInv(s).match(/INV\d{6,14}/);return m?m[0]:''};
+
+detectInv=async function(src){const det=await getDet();if(!det)return '';
+  try{const r=await det.detect(src);for(const b of r){const v=pickInv(b.rawValue);if(v)return v}}catch(e){}
+  return ''};
+zxInv=function(c,glob){return pickInv(zxRead(c,glob))};
+
+liveTick=async function(){const v=$('lvid');if(L.busy||L.done||!v.videoWidth)return;L.busy=true;
+  try{const sec=(Date.now()-L.t0)/1000;
+    if(!$('lAI').disabled&&sec>1.5){const ph=Math.floor(sec/3)%3;
+      tip(L.ocrFail?t('ocrOff'):ph===0?t('bcRead'):ph===1?t('tH1'):(SET.aiReady?t('tAiHint'):t('tH2')),(L.ocrFail||ph>0)?'warn':'')}
+    if(sec>1.5&&Date.now()-L.rf>1500){L.rf=Date.now();refocus()}
+    if(!L.aiTried&&SET.aiReady&&sec>3.5&&(L.ocrFail||sec>10)){L.aiTried=true;$('lAI').click()}
+    L.n++;
+    let tx=await detectInv(v);
+    if(!tx&&!L.done){
+      const V=[{box:1,W:1600,up:2},{box:1,W:1600,up:2,flt:1},{W:1920,up:1,flt:1},
+               {box:1,W:1400,up:2,deg:-6},{box:1,W:1400,up:2,deg:6},{box:1,W:1400,up:2,rot:1}];
+      const o=Object.assign({},V[L.n%V.length]);o.cv=L.cv||(L.cv=document.createElement('canvas'));
+      tx=await detectInv(prep(v,o))}
+    if(!tx&&!L.done&&window.ZXing&&L.n%2===0){
+      const i=(L.n/2)|0,D=[0,-4,4,-8,8,0];
+      tx=zxInv(prep(v,{box:1,W:1100,up:2,deg:D[i%6],rot:i%6===5,cv:L.cv2||(L.cv2=document.createElement('canvas'))}),i%2===1)}
+    if(tx&&!L.done)liveOk(tx)
+  }catch(e){}
+  L.busy=false};
+
+/* Resolusi kamera lebih tinggi setelah kamera terbuka */
+const _ol=openLive;
+openLive=async function(id){await _ol(id);
+  try{if(L.track&&L.run)await L.track.applyConstraints({width:{ideal:2560},height:{ideal:1440}})}catch(e){}};
+</script>
 </body></html>
