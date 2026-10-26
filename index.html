@@ -1907,6 +1907,145 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&SHOWERR&&
 })();
 </script>
 <style>
+/* ===== INPUT SUARA NO INVOICE ===== */
+.nrow .okb.mic{padding:0 14px;background:linear-gradient(180deg,#3d9be8,#1f5fb8);box-shadow:0 5px 0 #124a96}
+.nrow .okb.mic:active{box-shadow:0 1px 0 #124a96}
+.nrow .okb.mic.on{background:linear-gradient(180deg,#ff6a6f,#c4262d);box-shadow:0 5px 0 #7d1912}
+.vmdot{display:inline-block;width:14px;height:14px;border-radius:50%;background:#e5484d;margin-right:8px;vertical-align:-2px;animation:vmp 1s ease-in-out infinite alternate}
+@keyframes vmp{from{opacity:.3}to{opacity:1}}
+.vmheard{min-height:44px;margin:0 0 10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.1);font-weight:700;font-size:15px;word-break:break-word}
+#vmic .cambox{width:min(94vw,440px)}
+#vmRes{text-align:center;letter-spacing:1px;font-size:18px}
+</style>
+<script>
+/* ===== INPUT SUARA NO INVOICE (Web Speech API; jalan di Chrome/Samsung Internet/Safari semua merk HP) ===== */
+(function(){
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+Object.assign(I.id,{
+ vMic:'Isi dengan suara',vTitle:'Ucapkan nomor invoice',
+ vHint:'Ucapkan angkanya pelan dan jelas. Contoh: "INV satu satu tiga satu sembilan delapan satu nol lima". Untuk angka kembar boleh sebut "dobel".',
+ vListen:'Mendengarkan... silakan bicara',vHeard:'Terdengar: {0}',
+ vCheck:'Periksa nomor di bawah, perbaiki bila perlu, lalu tekan Pakai.',
+ vNone:'Suara tidak terdengar. Tekan Ulangi lalu bicara lebih dekat ke mikrofon.',
+ vPerm:'Izin mikrofon ditolak. Ketuk ikon gembok/pengaturan di kolom alamat Chrome > Izin > Mikrofon > Izinkan, lalu tekan Ulangi.',
+ vNet:'Pengenalan suara butuh internet. Periksa koneksi lalu tekan Ulangi.',
+ vMicNF:'Mikrofon tidak ditemukan atau sedang dipakai aplikasi lain.',
+ vNoSup:'Browser ini belum mendukung pengenalan suara. Buka link di Chrome, atau ketuk kolom invoice lalu tekan ikon mikrofon di keyboard HP.',
+ vUse:'Pakai',vAgain:'Ulangi',vWarnN:'Jumlah angka {0} (biasanya 9). Pastikan sudah benar.',
+ vBad:'Nomor belum valid (INV + 6-14 angka).',vFail:'Pengenalan suara gagal. Tekan Ulangi.'});
+Object.assign(I.en,{
+ vMic:'Fill by voice',vTitle:'Say the invoice number',
+ vHint:'Speak the digits slowly and clearly. Example: "INV one one three one nine eight one zero five". Say "double" for repeated digits.',
+ vListen:'Listening... please speak',vHeard:'Heard: {0}',
+ vCheck:'Check the number below, fix it if needed, then tap Use.',
+ vNone:'No voice heard. Tap Try again and speak closer to the microphone.',
+ vPerm:'Microphone permission denied. Tap the lock/settings icon in the Chrome address bar > Permissions > Microphone > Allow, then tap Try again.',
+ vNet:'Voice recognition needs internet. Check your connection then tap Try again.',
+ vMicNF:'Microphone not found or in use by another app.',
+ vNoSup:'This browser does not support voice recognition. Open the link in Chrome, or tap the invoice field and use the microphone key on your phone keyboard.',
+ vUse:'Use',vAgain:'Try again',vWarnN:'{0} digits (usually 9). Make sure it is correct.',
+ vBad:'Number is not valid (INV + 6-14 digits).',vFail:'Voice recognition failed. Tap Try again.'});
+
+const W=Object.assign(Object.create(null),{nol:0,kosong:0,zero:0,o:0,satu:1,se:1,one:1,wan:1,dua:2,two:2,to:2,too:2,tiga:3,three:3,empat:4,four:4,for:4,lima:5,five:5,enam:6,six:6,tujuh:7,tuju:7,seven:7,delapan:8,lapan:8,eight:8,ate:8,sembilan:9,nine:9});
+const REP=Object.assign(Object.create(null),{dobel:2,double:2,dobble:2,ganda:2,triple:3,tripel:3});
+function parse(txt){
+  let s=String(txt||'').toLowerCase().replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+  s=s.replace(/^(i ?n ?v(oice|ois)?|inf|imv|env)/,'').trim();
+  let d='',rep=1;
+  s.split(' ').forEach(tk=>{
+    if(!tk)return;
+    if(/^\d+$/.test(tk)){d+=(tk.length===1&&rep>1)?tk.repeat(rep):tk;rep=1;return}
+    if(tk in REP){rep=REP[tk];return}
+    if(tk in W){d+=String(W[tk]).repeat(rep);rep=1}});
+  return {v:'INV'+d,n:d.length,ok:d.length>=6&&d.length<=14}}
+function best(alts){const p=alts.map(parse).filter(x=>x.n>0);
+  return p.find(x=>x.n===9)||p.find(x=>x.ok)||p[0]||null}
+
+/* tombol mikrofon di samping tombol scan */
+const ICON='<svg class="ic" viewBox="0 0 24 24"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11z"/></svg>';
+document.querySelectorAll('.sc').forEach(b=>{
+  const m=document.createElement('button');m.type='button';m.className='btn okb mic';m.dataset.t=b.dataset.t;
+  m.innerHTML=ICON;m.title=t('vMic');m.setAttribute('aria-label',t('vMic'));
+  b.insertAdjacentElement('afterend',m)});
+
+/* jendela suara */
+document.body.insertAdjacentHTML('beforeend',
+ '<div id="vmic" class="camwrap hide"><div class="cambox" style="text-align:center;color:#fff">'+
+ '<p id="vmT" style="font-weight:800;font-size:17px;margin:6px 0 4px"></p>'+
+ '<p id="vmH" style="font-size:12px;color:#cfe0f2;margin:0 0 10px;line-height:1.5"></p>'+
+ '<p id="vmS" style="font-weight:700;font-size:14px;margin:0 0 8px;min-height:20px"></p>'+
+ '<div class="vmheard" id="vmHeard"></div>'+
+ '<input id="vmRes" class="pop" autocomplete="off" autocapitalize="characters" placeholder="INVxxxxxxxxx">'+
+ '<div class="camact"><button class="btn gray" id="vmX" type="button"></button><button class="btn gray" id="vmR" type="button"></button><button class="btn" id="vmOk" type="button"></button></div>'+
+ '</div></div>');
+
+let R=null,target='',lang='id-ID',err='',gotAny=false,tried=false;
+const isOpen=()=>!$('vmic').classList.contains('hide');
+function status(tx,listening,warn){const e=$('vmS');
+  e.innerHTML=(listening?'<span class="vmdot"></span>':'')+esc(tx);e.style.color=warn?'#ff9a92':'#fff'}
+function stopR(){if(R){R.onresult=R.onerror=R.onend=null;try{R.abort()}catch(e){}R=null}
+  document.querySelectorAll('.okb.mic').forEach(b=>b.classList.remove('on'))}
+function closeV(){stopR();$('vmic').classList.add('hide')}
+function fillStatus(){
+  const v=cleanInv($('vmRes').value),dg=v.replace(/^INV/,'').replace(/\D/g,'');
+  if(!dg){return}
+  if(dg.length!==9)status(t('vWarnN',dg.length),false,true);else status(t('vCheck'),false)}
+function start(){
+  stopR();err='';gotAny=false;
+  try{window.speechSynthesis.cancel()}catch(e){}   // hentikan suara notifikasi agar tidak terekam
+  $('vmHeard').textContent='';$('vmRes').value='';
+  status(t('vListen'),true);
+  const r=new SR();R=r;r.lang=lang;r.interimResults=true;r.maxAlternatives=5;r.continuous=false;
+  r.onresult=e=>{
+    const rs=e.results[e.results.length-1],alts=[];
+    for(let j=0;j<rs.length;j++)alts.push(rs[j].transcript);
+    $('vmHeard').textContent=t('vHeard',alts[0]||'');
+    const b=best(alts);if(b){gotAny=true;$('vmRes').value=b.v}};
+  r.onerror=e=>{err=(e&&e.error)||'x'};
+  r.onend=()=>{
+    if(R!==r)return;R=null;
+    document.querySelectorAll('.okb.mic').forEach(b=>b.classList.remove('on'));
+    if(err==='language-not-supported'&&lang==='id-ID'&&!tried){tried=true;lang='en-US';start();return}
+    if(gotAny){fillStatus();return}
+    if(err==='not-allowed'||err==='service-not-allowed')status(t('vPerm'),false,true);
+    else if(err==='network')status(t('vNet'),false,true);
+    else if(err==='audio-capture')status(t('vMicNF'),false,true);
+    else if(err==='no-speech'||!err)status(t('vNone'),false,true);
+    else if(err==='aborted'){}
+    else status(t('vFail'),false,true)};
+  try{r.start()}catch(e){status(t('vFail'),false,true)}}
+function openV(id){
+  if(!SR){toast(t('vNoSup'),1);try{$(id).focus()}catch(e){}return}
+  target=id;tried=false;lang='id-ID';
+  $('vmT').textContent=t('vTitle');$('vmH').textContent=t('vHint');
+  $('vmX').textContent=t('cancel');$('vmR').textContent=t('vAgain');$('vmOk').textContent=t('vUse');
+  $('vmic').classList.remove('hide');
+  document.querySelectorAll('.okb.mic').forEach(b=>b.classList.toggle('on',b.dataset.t===id));
+  start()}
+document.querySelectorAll('.okb.mic').forEach(b=>b.onclick=()=>openV(b.dataset.t));
+$('vmX').onclick=closeV;
+$('vmR').onclick=()=>{tried=false;lang='id-ID';start()};
+$('vmRes').addEventListener('input',()=>{if(!R)fillStatus()});
+$('vmOk').onclick=()=>{
+  let v=cleanInv($('vmRes').value);
+  if(/^\d{6,14}$/.test(v))v='INV'+v;
+  if(!isInv(v)){status(t('vBad'),false,true);return}
+  const el=$(target);el.value=v;
+  el.dispatchEvent(new Event('input',{bubbles:true}));   // memicu simpan draf & cek invoice ganda
+  if(navigator.vibrate)navigator.vibrate([60,40,60]);
+  try{beep()}catch(e){}
+  closeV();toast(t('invRead',v))};
+
+/* tombol Back HP menutup jendela suara dulu */
+window.addEventListener('popstate',function(e){
+  if(!isOpen())return;
+  e.stopImmediatePropagation();closeV();
+  try{history.pushState({azko:1},'',location.href)}catch(x){}},true);
+/* kamera/mik dilepas bila aplikasi ke latar belakang */
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&isOpen())stopR()});
+})();
+</script>
+ <style>
 /* ===== SCANNER V3 ===== */
 .lbar{flex-wrap:wrap}
 .lbar .btn{flex:1 1 30%;min-width:0}
