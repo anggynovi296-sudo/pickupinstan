@@ -4,6 +4,102 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Monitoring Pickup Instan</title>
+ <script>
+/* ===== PATCH IZIN KAMERA & MIKROFON =====
+   TEMPEL DI <head>, tepat di bawah <title>...</title> (HARUS paling atas, sebelum script lain).
+   Tidak mengubah kode lain: hanya membungkus getUserMedia dan SpeechRecognition. */
+(function(){
+var md=navigator.mediaDevices;
+var inflight=0,grace=0,chain=Promise.resolve();
+var sleep=function(ms){return new Promise(function(r){setTimeout(r,ms)})};
+function busy(){return inflight>0||Date.now()<grace}
+
+/* Saat kotak izin muncul, sebagian HP mengirim visibilitychange. Abaikan selama permintaan izin berjalan
+   supaya scanner/mik tidak ikut dimatikan atau dibuka dobel. */
+document.addEventListener('visibilitychange',function(e){if(busy())e.stopImmediatePropagation()},true);
+
+function perm(name){
+  try{return navigator.permissions.query({name:name}).then(function(s){return s.state},function(){return '?'})}
+  catch(e){return Promise.resolve('?')}}
+
+/* getUserMedia: permintaan diantre satu-satu (tidak bentrok saat kotak izin terbuka)
+   dan otomatis diulang bila gagal sesaat setelah user menekan Izinkan. */
+async function attempt(orig,c){
+  var kind=(c&&c.video)?'camera':'microphone',tries=0;
+  for(;;){
+    var t0=Date.now();
+    try{return await orig(c)}
+    catch(e){
+      var n=e&&e.name;tries++;
+      var transient=(n==='NotReadableError'||n==='AbortError'||n==='TrackStartError');
+      var quickPerm=(n==='NotAllowedError'||n==='SecurityError')&&(Date.now()-t0<1500);
+      if(tries>=4||(!transient&&!quickPerm))throw e;
+      if(quickPerm){var st=await perm(kind);if(st==='denied'||tries>=3)throw e}
+      await sleep(transient?700:900)}}}
+
+if(md&&md.getUserMedia){
+  var orig=md.getUserMedia.bind(md);
+  md.getUserMedia=function(c){
+    var run=function(){
+      inflight++;
+      return attempt(orig,c).then(
+        function(s){inflight--;grace=Date.now()+1500;return s},
+        function(e){inflight--;grace=Date.now()+1500;throw e})};
+    var p=chain.then(run);chain=p.catch(function(){});return p}}
+
+/* SpeechRecognition: minta izin mik LEBIH DULU lewat getUserMedia, baru mulai mendengarkan,
+   dan ulangi otomatis bila berhenti terlalu cepat (efek kotak izin). */
+var Real=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(Real){
+  var ensureMic=function(){
+    if(!md||!md.getUserMedia)return Promise.resolve();
+    return perm('microphone').then(function(st){
+      if(st==='granted')return;
+      if(st==='denied')return Promise.reject('not-allowed');
+      return md.getUserMedia({audio:true}).then(
+        function(s){s.getTracks().forEach(function(t){t.stop()})},
+        function(e){var n=e&&e.name;
+          if(n==='NotAllowedError'||n==='SecurityError')return Promise.reject('not-allowed');
+          if(n==='NotFoundError')return Promise.reject('audio-capture')})})};
+
+  var Wrap=function(){
+    this.lang='id-ID';this.interimResults=false;this.maxAlternatives=1;this.continuous=false;
+    this.onresult=this.onerror=this.onend=this.onstart=null;
+    this._r=null;this._dead=false;this._got=false};
+  Wrap.prototype.abort=function(){
+    this._dead=true;var r=this._r;this._r=null;
+    if(r){r.onresult=r.onerror=r.onend=null;try{r.abort()}catch(e){}}};
+  Wrap.prototype.stop=function(){if(this._r){try{this._r.stop()}catch(e){}}};
+  Wrap.prototype.start=function(){
+    var self=this;self._dead=false;self._got=false;
+    function fail(code){
+      if(self._dead)return;
+      if(self.onerror)self.onerror({error:code});
+      if(self.onend)self.onend()}
+    function run(n){
+      if(self._dead)return;
+      var r=new Real(),t0=Date.now(),err='';self._r=r;
+      r.lang=self.lang;r.interimResults=self.interimResults;
+      r.maxAlternatives=self.maxAlternatives;r.continuous=self.continuous;
+      r.onresult=function(e){self._got=true;if(self.onresult)self.onresult(e)};
+      r.onerror=function(e){err=(e&&e.error)||'x'};
+      r.onend=function(){
+        if(self._r!==r||self._dead)return;
+        self._r=null;
+        var quick=Date.now()-t0<2500;
+        if(!self._got&&quick&&n<2&&err!=='network'&&err!=='language-not-supported'&&err!=='service-not-allowed'){
+          setTimeout(function(){run(n+1)},400);return}
+        if(err&&self.onerror)self.onerror({error:err});
+        if(self.onend)self.onend()};
+      try{r.start()}catch(e){self._r=null;fail('x')}}
+    ensureMic().then(function(){return sleep(200)}).then(
+      function(){run(0)},
+      function(code){fail(typeof code==='string'?code:'audio-capture')})};
+  try{window.SpeechRecognition=Wrap}catch(e){}
+  try{window.webkitSpeechRecognition=Wrap}catch(e){}
+}
+})();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--navy:#0d2238;--navy2:#17375a;--ink:#10202f;--mut:#61758a;--bg:#e6ecf3;--line:#d3dde8;--acc:#0f9d58;--accd:#0a6e3d}
