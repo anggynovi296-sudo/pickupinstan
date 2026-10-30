@@ -2377,4 +2377,117 @@ window.addEventListener('popstate',function(e){
   history.back()},true);
 })();
 </script>
+<script>
+/* ===== SCANNER V4: ZXing-wasm (pembaca barcode cepat) + PWA ===== */
+(function(){
+const MEM=navigator.deviceMemory||4,CPU=navigator.hardwareConcurrency||4;
+const LOW=(MEM<=2||CPU<=4);
+const WV='3.1.6';
+const BASES=['https://cdn.jsdelivr.net/npm/zxing-wasm@'+WV+'/dist/','https://fastly.jsdelivr.net/npm/zxing-wasm@'+WV+'/dist/'];
+const OPTS={formats:['Code128','Code39','Code93','EAN13','EAN8','UPCA','UPCE','ITF','Codabar','QRCode','DataMatrix'],tryHarder:true,tryRotate:true,tryInvert:false,maxNumberOfSymbols:4};
+const MSG={
+ engine:['Pemindai belum siap (cek internet). Tekan Pakai kamera HP.','The scanner is not ready (check internet). Tap Use phone camera.']};
+const m=k=>MSG[k][LANG==='en'?1:0];
+let WP=null,WOK=false,NFAIL=0,EMA=0,ZI=0,WI=0;
+const pick=s=>{const x=cleanInv(s).match(/INV\d{6,14}/);return x?x[0]:''};
+const cv1=document.createElement('canvas'),cv2=document.createElement('canvas'),cvw=document.createElement('canvas');
+try{cvw.getContext('2d',{willReadFrequently:true})}catch(e){}
+function showNat(){const b=$('lNative');b.classList.remove('hide','gray');b.classList.add('pri')}
+
+/* ----- Muat ZXing-wasm (2 alamat unduhan). Bila gagal, scanner tetap memakai BarcodeDetector / ZXing-js. ----- */
+function loadScript(u){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=u;s.onload=ok;s.onerror=()=>{s.remove();no(new Error('x'))};document.head.appendChild(s)})}
+function lw(){
+  if(WOK)return Promise.resolve();if(WP)return WP;
+  WP=(async()=>{
+    for(const b of BASES){
+      try{
+        if(!window.ZXingWASM)await loadScript(b+'iife/reader/index.js');
+        if(!window.ZXingWASM)continue;
+        await window.ZXingWASM.prepareZXingModule({overrides:{locateFile:(f,p)=>{const x=f.match(/_(.+?)\.wasm$/);return x?b+x[1]+'/'+f:p+f}},fireImmediately:true});
+        WOK=true;return}
+      catch(e){try{window.ZXingWASM.purgeZXingModule()}catch(z){}}}
+    WP=null;throw new Error('wasm')})();
+  return WP}
+const lwTimeout=ms=>Promise.race([lw(),new Promise((_,no)=>setTimeout(()=>no(new Error('timeout')),ms))]);
+
+/* ----- Baca satu gambar/frame dengan ZXing-wasm ----- */
+async function wread(src,o){
+  const c=prep(src,Object.assign({cv:cvw},o));
+  const id=c.getContext('2d').getImageData(0,0,c.width,c.height);
+  const r=await window.ZXingWASM.readBarcodes(id,OPTS);
+  for(const x of r){const v=pick(x.text);if(v)return v}
+  return ''}
+async function nat(det,src){
+  try{const r=await det.detect(src);NFAIL=0;for(const b of r){const v=pick(b.rawValue);if(v)return v}}
+  catch(e){NFAIL++}
+  return ''}
+
+/* ----- Satu putaran baca barcode di kamera langsung: BarcodeDetector -> ZXing-wasm -> ZXing-js ----- */
+async function tick4(){
+  const v=$('lvid');if(L.busy||L.done||document.hidden||!v.videoWidth)return;L.busy=true;
+  const T0=performance.now();
+  try{
+    const sec=(Date.now()-L.t0)/1000;L.n++;
+    if(!WOK&&!WP&&L.n%25===1)lw().catch(()=>{});
+    if(sec>1.5&&!$('lAI').disabled){const ph=Math.floor(sec/3)%3;
+      tip(ph===0?t('bcRead'):ph===1?t('tH1'):(SET.aiReady?t('tAiHint'):t('tH2')),ph>0?'warn':'')}
+    if(sec>3&&Date.now()-L.rf>6000){L.rf=Date.now();refocus()}
+    if(!L.aiTried&&SET.aiReady&&sec>10){L.aiTried=true;$('lAI').click()}
+    const det=await getDet(),useNat=!!det&&NFAIL<3,slow=EMA>230,W=(slow||LOW)?720:960;
+    let tx='';
+    if(useNat){
+      tx=await nat(det,v);
+      if(!tx&&!L.done&&L.n%2===0)tx=await nat(det,prep(v,{box:1,W:900,flt:L.n%4===0,cv:cv1}))}
+    if(!tx&&!L.done&&WOK&&(!useNat||L.n%2===1)){
+      const D=[0,0,-4,4],i=WI++;
+      tx=await wread(v,{box:1,W:W,flt:i%3===2,deg:D[i%4]})}
+    if(!tx&&!L.done&&!WOK&&window.ZXing&&(!useNat||L.n%3===0)){
+      const D=[0,-4,4,0,-8,8],i=ZI++;
+      tx=pick(zxRead(prep(v,{box:1,W:800,deg:D[i%6],rot:i%6===5,cv:cv2}),i%2===1))}
+    if(!tx&&!useNat&&!WOK&&!window.ZXing&&sec>4){tip(m('engine'),'warn');showNat()}
+    if(tx&&!L.done)liveOk(tx)
+  }catch(e){}
+  const dt=performance.now()-T0;EMA=EMA?EMA*.7+dt*.3:dt;
+  L.busy=false}
+function loop4(){if(!L.run)return;liveTick().then(()=>{if(L.run)L.timer=setTimeout(loop4,EMA>200?120:80)})}
+
+/* ----- Foto dari kamera bawaan HP (cadangan): ZXing-wasm lebih dulu ----- */
+async function scaled(file,w){
+  try{if(window.createImageBitmap)return await createImageBitmap(file,{resizeWidth:w,resizeQuality:'medium'})}catch(e){}
+  return await new Promise((ok,no)=>{const u=URL.createObjectURL(file),i=new Image();
+    i.onload=()=>{ok(i);setTimeout(()=>URL.revokeObjectURL(u),60000)};i.onerror=no;i.src=u})}
+async function wphoto(img){
+  const V=[{W:1600},{W:1600,flt:1},{W:1600,deg:-5},{W:1600,deg:5},{W:2000},{W:1100,flt:1}];
+  for(const o of V){const tx=await wread(img,o);if(tx)return tx;await new Promise(r=>setTimeout(r,0))}
+  return ''}
+async function lightOcr(img){try{const r=await ocrInv(prep(img,{W:1400,flt:true}));return r?r.v:''}catch(e){return ''}}
+$('sf').onchange=async function(){
+  const f=$('sf').files[0];$('sf').value='';if(!f)return;toast(t('readBar'));
+  try{
+    const img=await scaled(f,2000);LASTIMG=img;
+    toast(t('bcRead'));
+    let tx='';
+    try{await lwTimeout(8000)}catch(e){}
+    if(WOK)tx=await wphoto(img);
+    if(!tx)tx=await deepBarcode(img);
+    if(!tx){toast(t('ocrRead'));tx=LOW?await lightOcr(img):await deepOcr(img)}
+    if(!tx&&SET.aiReady){toast(t('aiReading'));tx=await aiOnly(img)}
+    if(tx){$(sTarget).value=tx;if(navigator.vibrate)navigator.vibrate([60,40,60]);beep();toast(t('invRead',tx))}
+    else{$('msg').style.display='none';$('sresT').textContent=t('sresMsg',t('pFull'));$('sresA').classList.toggle('hide',!SET.aiReady);$('sresA').disabled=false;$('sres').classList.remove('hide')}
+  }catch(e){toast(t('photoFail'),1)}};
+
+/* ----- Pasang ----- */
+liveTick=tick4;liveLoop=loop4;
+document.querySelectorAll('.sc').forEach(b=>b.addEventListener('click',()=>{lw().catch(()=>{})}));
+if(!LOW)setTimeout(()=>{lw().catch(()=>{})},3000);   // HP kuat: siapkan pembaca lebih awal
+
+/* ----- PWA: manifest + service worker ----- */
+try{
+  if(!document.querySelector('link[rel="manifest"]')){const l=document.createElement('link');l.rel='manifest';l.href='manifest.json';document.head.appendChild(l)}
+  if(!document.querySelector('meta[name="theme-color"]')){const x=document.createElement('meta');x.name='theme-color';x.content='#0d2238';document.head.appendChild(x)}
+  const reg=()=>{if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{})};
+  if(document.readyState==='complete')reg();else addEventListener('load',reg);
+}catch(e){}
+})();
+</script>
 </body></html>
