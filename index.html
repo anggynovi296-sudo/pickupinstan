@@ -415,7 +415,7 @@ body:has(#vMon:not(.hide) #monBody:not(.hide)) thead th{position:sticky;top:0;z-
  <symbol id="m-lang" viewBox="0 0 24 24"><path fill="#fff" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.900 9h-3a15 15 0 0 0-1.200-5A8 8 0 0 1 18.900 11zM12 4.100c.8 1 1.600 3.100 1.900 6.900h-3.800C10.400 7.200 11.200 5.100 12 4.100zM9.300 6a15 15 0 0 0-1.200 5h-3A8 8 0 0 1 9.300 6zM5.100 13h3a15 15 0 0 0 1.200 5A8 8 0 0 1 5.100 13zM12 19.900c-.8-1-1.600-3.100-1.900-6.900h3.800c-.3 3.800-1.100 5.900-1.900 6.900zM14.700 18a15 15 0 0 0 1.200-5h3a8 8 0 0 1-4.200 5z"/></symbol>
 </defs></svg>
 
-<div id="splash"><div class="sbox">
+<div id="splash" class="out"><div class="sbox">
   <div class="azlogo">azko</div>
   <div class="stitle" id="stitle" aria-label="AZ·KO SIDOARJO"></div>
   <div class="ssub" data-i="ssub">Pickup Instan</div>
@@ -444,12 +444,12 @@ body:has(#vMon:not(.hide) #monBody:not(.hide)) thead th{position:sticky;top:0;z-
         <input type="range" id="volR" min="0" max="100" step="5" value="80" data-ia="volR" aria-label="Volume suara" title="Volume suara">
         <span id="volV">80%</span>
       </div>
-      <button class="btn gray lg" id="logout" type="button" data-i="out">Keluar</button>
+      <button class="btn gray lg hide" id="logout" type="button" data-i="out">Keluar</button>
     </div>
   </div>
   <nav class="tabs" role="tablist">
     <button class="tab on" id="tIn" role="tab" data-i="tIn">Input Data</button>
-    <button class="tab hide" id="tMon" role="tab"><svg><use href="#i-lock"/></svg>MONITORING PIC / CS</button>
+    <button class="tab" id="tMon" role="tab"><svg><use href="#i-lock"/></svg>MONITORING PIC / CS</button>
   </nav>
 </header>
 
@@ -985,7 +985,7 @@ $('sOk').onclick=sCek;
 $('snip').addEventListener('keydown',e=>{if(e.key==='Enter')sCek()});
 $('snip').addEventListener('input',()=>{sReset();$('sErr').textContent=''});
 $('spass').addEventListener('keydown',e=>{if(e.key==='Enter')sLogin()});
-$('logout').onclick=()=>{relock();$('tMon').classList.add('hide');tab('in');showSplash()};
+$('logout').onclick=()=>{relock();tab('in')};
 document.querySelectorAll('.slang button').forEach(b=>b.onclick=()=>{savePL(b.dataset.lg);setLang(b.dataset.lg)});
 
 /* =====================================================================
@@ -1292,7 +1292,7 @@ function idleReset(){clearTimeout(idleT);if(ME&&SET.idle>0)idleT=setTimeout(()=>
 // ===== Menu samping =====
 const SD=$('side');
 const isAdm=()=>ME&&ME.role==='admin';
-function updateSide(){$('sideTab').style.display=ME?'block':'none'}
+function updateSide(){$('sideTab').style.display=ME?'block':'none';$('logout').classList.toggle('hide',!ME)}
 function sideOpen(){if(!ME)return;
   $('prof').innerHTML='<small>'+(isAdm()?t('rADM'):t('rPET'))+'</small><b>'+esc(ME.nama)+'</b><em>NIP '+esc(ME.nip)+'</em>';
   SD.querySelectorAll('.adm').forEach(b=>b.classList.toggle('hide',!isAdm()));
