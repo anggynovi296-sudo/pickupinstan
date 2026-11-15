@@ -1229,7 +1229,7 @@ $('sf').onchange=async()=>{const f=$('sf').files[0];$('sf').value='';if(!f)retur
     if(tx){$(sTarget).value=tx;if(navigator.vibrate)navigator.vibrate([60,40,60]);beep();toast(t('invRead',tx))}
     else{$('msg').style.display='none';$('sresT').textContent=t('sresMsg',t('pFull'));$('sresA').classList.toggle('hide',!SET.aiReady);$('sresA').disabled=false;$('sres').classList.remove('hide')}
   }catch(e){toast(t('photoFail'),1)}};
-setTimeout(()=>{loadZx().catch(()=>{})},1500);   // panaskan pembaca sejak halaman dibuka
+   // panaskan pembaca sejak halaman dibuka
 
 /* ================= MODE IA (isi form otomatis dari foto) ================= */
 function aiCall(durl,mode){return new Promise((ok,no)=>google.script.run.withSuccessHandler(ok).withFailureHandler(no).aiExtract(durl,mode))}
@@ -1544,40 +1544,7 @@ async function wakeOn(){try{if('wakeLock' in navigator&&CURTAB==='mon'&&ME&&!WL)
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)wakeOn()});
 setInterval(wakeOn,30000);
 </script>
-<script>
-/* ===== SCANNER BARCODE LEBIH SENSITIF ===== */
-const pickInv=s=>{const m=cleanInv(s).match(/INV\d{6,14}/);return m?m[0]:''};
 
-detectInv=async function(src){const det=await getDet();if(!det)return '';
-  try{const r=await det.detect(src);for(const b of r){const v=pickInv(b.rawValue);if(v)return v}}catch(e){}
-  return ''};
-zxInv=function(c,glob){return pickInv(zxRead(c,glob))};
-
-liveTick=async function(){const v=$('lvid');if(L.busy||L.done||!v.videoWidth)return;L.busy=true;
-  try{const sec=(Date.now()-L.t0)/1000;
-    if(!$('lAI').disabled&&sec>1.5){const ph=Math.floor(sec/3)%3;
-      tip(L.ocrFail?t('ocrOff'):ph===0?t('bcRead'):ph===1?t('tH1'):(SET.aiReady?t('tAiHint'):t('tH2')),(L.ocrFail||ph>0)?'warn':'')}
-    if(sec>1.5&&Date.now()-L.rf>1500){L.rf=Date.now();refocus()}
-    if(!L.aiTried&&SET.aiReady&&sec>3.5&&(L.ocrFail||sec>10)){L.aiTried=true;$('lAI').click()}
-    L.n++;
-    let tx=await detectInv(v);
-    if(!tx&&!L.done){
-      const V=[{box:1,W:1600,up:2},{box:1,W:1600,up:2,flt:1},{W:1920,up:1,flt:1},
-               {box:1,W:1400,up:2,deg:-6},{box:1,W:1400,up:2,deg:6},{box:1,W:1400,up:2,rot:1}];
-      const o=Object.assign({},V[L.n%V.length]);o.cv=L.cv||(L.cv=document.createElement('canvas'));
-      tx=await detectInv(prep(v,o))}
-    if(!tx&&!L.done&&window.ZXing&&L.n%2===0){
-      const i=(L.n/2)|0,D=[0,-4,4,-8,8,0];
-      tx=zxInv(prep(v,{box:1,W:1100,up:2,deg:D[i%6],rot:i%6===5,cv:L.cv2||(L.cv2=document.createElement('canvas'))}),i%2===1)}
-    if(tx&&!L.done)liveOk(tx)
-  }catch(e){}
-  L.busy=false};
-
-/* Resolusi kamera lebih tinggi setelah kamera terbuka */
-const _ol=openLive;
-openLive=async function(id){await _ol(id);
-  try{if(L.track&&L.run)await L.track.applyConstraints({width:{ideal:2560},height:{ideal:1440}})}catch(e){}};
-</script>
 <style>
 /* ===== PERBAIKAN APLIKASI RINGAN ===== */
 .azlogo,.stitle span,.ssub,.sbtns,.lok{animation:none!important}
@@ -1623,41 +1590,7 @@ $('reset').addEventListener('click',()=>{ROWLIM=150});
 .ltip{max-height:34%;overflow:auto;font-size:13px;line-height:1.35;z-index:3}
 #lNative.pri{background:linear-gradient(180deg,#19b56a,#0a6e3d);color:#fff;box-shadow:0 5px 0 #065029}
 </style>
-<script>
-/* ===== SCANNER ANTI GAGAL: coba ulang otomatis + kamera HP sebagai cadangan ===== */
-let CAMRETRY=0,CAMRT=null;
-const INAPP=/; wv\)|FBAN|FBAV|Instagram|Line\/|MicroMessenger|TikTok|Snapchat/i.test(navigator.userAgent);
-const camReset=()=>{CAMRETRY=0;clearTimeout(CAMRT)};
-document.querySelectorAll('.sc').forEach(b=>b.addEventListener('click',camReset));
-$('lX').addEventListener('click',camReset);
-$('lRetry').addEventListener('click',camReset);
 
-camErr=function(e){
-  clearTimeout(CAMRT);
-  const n=(e&&e.name)||'';
-  const en=LANG==='en';
-  camBtns();$('lNative').classList.add('pri');$('lNative').classList.remove('gray');
-  if(INAPP){tip(en?'This page is open inside another app, which often blocks the camera. Open the link in Chrome, or tap Use phone camera.':'Halaman ini dibuka di dalam aplikasi lain, yang sering memblokir kamera. Buka link di Chrome, atau tekan Pakai kamera HP.','warn');return}
-  if(typeof e==='string'){tip(e,'warn');return}
-  if(n==='NotAllowedError'||n==='SecurityError'){
-    camDiag().then(d=>{
-      let m;
-      if(d.pol==='tidak')m=t('camPol');
-      else if(d.st==='denied')m=t('camDen');
-      else if(d.st==='prompt'){
-        m=en?'The permission prompt cannot appear. Close ALL screen overlays (chat bubbles, floating buttons, screen recorders, screen filters). Retrying automatically... or tap Use phone camera.'
-            :'Kotak izin kamera tertutup. Tutup SEMUA balon/overlay layar (bubble chat, tombol melayang, perekam layar, filter layar). Mencoba otomatis... atau tekan Pakai kamera HP.';
-        if(CAMRETRY<6&&!$('lscan').classList.contains('hide')){
-          CAMRETRY++;
-          CAMRT=setTimeout(()=>{if(!$('lscan').classList.contains('hide')&&!L.run)openLive(sTarget)},2500)}}
-      else m=t('camSys');
-      tip(m,'warn')});
-    return}
-  let m=t('camFail');
-  if(n==='NotFoundError'||n==='OverconstrainedError')m=t('camNF');
-  else if(n==='NotReadableError')m=t('camBusy');
-  tip(m,'warn')};
-</script>
 <style>
 /* ===== SCANNER V2 ===== */
 .lbar{flex-wrap:wrap}
@@ -1665,177 +1598,7 @@ camErr=function(e){
 .ltip{max-height:34%;overflow:auto;font-size:13px;line-height:1.35;z-index:3}
 #lNative.pri{background:linear-gradient(180deg,#19b56a,#0a6e3d);color:#fff;box-shadow:0 5px 0 #065029}
 </style>
-<script>
-/* ===== SCANNER V2: adaptif untuk semua HP ===== */
-(function(){
-const MEM=navigator.deviceMemory||4,CPU=navigator.hardwareConcurrency||4;
-const LOW=(MEM<=2||CPU<=4);
-const UA=navigator.userAgent;
-const INAPP2=/; wv\)|FBAN|FBAV|Instagram|Line\/|MicroMessenger|TikTok|Snapchat/i.test(UA);
-const ALTB=/MiuiBrowser|SamsungBrowser|OPR\/|UCBrowser|HuaweiBrowser|HeyTapBrowser|VivoBrowser|PhoenixBrowser/i.test(UA);
-const MS={
- prep:['Jika muncul kotak izin kamera, pilih "Izinkan saat mengunjungi situs".','If a camera permission box appears, choose "Allow while visiting the site".'],
- overlay:['Kotak izin kamera tertutup aplikasi lain di layar (balon/overlay). Tutup balon chat, tombol melayang, perekam layar atau filter layar. Mencoba otomatis... atau tekan Pakai kamera HP.','The camera permission box is covered by another app on screen (bubble/overlay). Close chat bubbles, floating buttons, screen recorders or screen filters. Retrying automatically... or tap Use phone camera.'],
- dismissed:['Izin kamera belum dipilih. Tekan Coba lagi, lalu pilih Izinkan.','Camera permission was not chosen. Tap Try again, then choose Allow.'],
- denied:['Kamera DIBLOKIR untuk situs ini. Ketuk ikon gembok/pengaturan di kiri kolom alamat > Izin > Kamera > Izinkan, lalu muat ulang halaman. Atau tekan Pakai kamera HP.','The camera is BLOCKED for this site. Tap the lock/settings icon left of the address bar > Permissions > Camera > Allow, then reload. Or tap Use phone camera.'],
- inapp:['Halaman ini dibuka di dalam aplikasi lain, buka link di Chrome.','This page is open inside another app, open the link in Chrome.'],
- alt:['Anda memakai browser bawaan merk HP, disarankan memakai Chrome.','You are using the phone-brand browser, Chrome is recommended.'],
- engine:['Pemindai belum siap (cek internet). Tekan Pakai kamera HP.','The scanner is not ready (check internet). Tap Use phone camera.']
-};
-const m=k=>MS[k][LANG==='en'?1:0];
-const T=s=>s+(INAPP2?' '+m('inapp'):'')+(ALTB?' '+m('alt'):'');
 
-let RT=null,RN=0,NFAIL=0,EMA=0,ZI=0,OPN=0,SHOWERR=false;
-const cv1=document.createElement('canvas'),cv2=document.createElement('canvas');
-const hidden=()=>$('lscan').classList.contains('hide');
-const pick=s=>{const x=cleanInv(s).match(/INV\d{6,14}/);return x?x[0]:''};
-const zx=(c,g)=>pick(zxRead(c,g));
-function showNat(){const b=$('lNative');b.classList.remove('hide','gray');b.classList.add('pri')}
-
-async function nat(det,src){
-  try{const r=await det.detect(src);NFAIL=0;for(const b of r){const v=pick(b.rawValue);if(v)return v}}
-  catch(e){NFAIL++}
-  return ''}
-detectInv=async function(src){const det=await getDet();return det?await nat(det,src):''};
-zxInv=function(c,g){return zx(c,g)};
-
-/* ----- Gagal membuka kamera ----- */
-async function failCam(e,dt){
-  const n=(e&&e.name)||'';
-  SHOWERR=true;$('lRetry').classList.remove('hide');$('lTorch').classList.add('hide');showNat();
-  if(n==='NotAllowedError'||n==='SecurityError'){
-    let st='?';try{st=(await navigator.permissions.query({name:'camera'})).state}catch(x){}
-    if(st==='denied'){tip(T(m('denied')),'warn');return}
-    if(st==='granted'){tip(T(t('camSys')),'warn');return}
-    if(dt<900){
-      tip(T(m('overlay')),'warn');
-      if(RN<8&&!hidden()){RN++;clearTimeout(RT);RT=setTimeout(()=>{if(!hidden()&&!L.run)open2(sTarget)},2500)}
-      return}
-    tip(T(m('dismissed')),'warn');return}
-  let k;
-  if(n==='NotFoundError'||n==='OverconstrainedError')k=t('camNF');
-  else if(n==='NotReadableError'||n==='AbortError')k=t('camBusy');
-  else k=t('camFail')+(n?' ('+n+')':'');
-  tip(T(k),'warn')}
-camErr=function(e){failCam(e,9999)};
-
-/* ----- Membuka kamera ----- */
-async function open2(id){
-  const my=++OPN;clearTimeout(RT);sTarget=id;
-  try{if(L.stream)L.stream.getTracks().forEach(x=>x.stop())}catch(e){}
-  L.run=false;clearTimeout(L.timer);L.stream=null;L.track=null;
-  L.done=false;L.busy=false;L.n=0;L.rf=Date.now();L.oc={};L.oi=0;L.ocrMiss=0;L.ocrFail=false;L.aiTried=false;L.t0=Date.now();
-  NFAIL=0;EMA=0;ZI=0;SHOWERR=false;
-  loadZx().catch(()=>{});getDet();
-  L.torch=false;setTorchTxt();
-  $('lscan').classList.remove('hide');
-  ['lRetry','lNative','lTorch','lZoom'].forEach(i=>$(i).classList.add('hide'));
-  $('lNative').classList.remove('pri');
-  $('lAI').classList.toggle('hide',!SET.aiReady);$('lAI').disabled=false;
-  tip(t('camOn'));
-  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){failCam(t('camNoSup'),9999);tip(T(t('camNoSup')),'warn');return}
-  let st='?';try{st=(await navigator.permissions.query({name:'camera'})).state}catch(e){}
-  if(my!==OPN)return;
-  if(st==='denied'){failCam({name:'NotAllowedError'},9999);return}
-  if(st==='prompt')tip(m('prep'));
-  const w=LOW?1280:1920,h=LOW?720:1080;
-  const tries=[
-    {video:{facingMode:{ideal:'environment'},width:{ideal:w},height:{ideal:h},frameRate:{ideal:LOW?24:30}},audio:false},
-    {video:{facingMode:{ideal:'environment'}},audio:false},
-    {video:true,audio:false}];
-  const t0=Date.now();let err=null,stream=null;
-  for(const c of tries){
-    try{stream=await navigator.mediaDevices.getUserMedia(c);break}
-    catch(e){err=e;const n=e&&e.name;if(n==='NotAllowedError'||n==='SecurityError'||n==='NotFoundError')break}}
-  if(my!==OPN){if(stream)stream.getTracks().forEach(x=>x.stop());return}
-  if(!stream){await failCam(err,Date.now()-t0);return}
-  if(hidden()){stream.getTracks().forEach(x=>x.stop());return}
-  RN=0;SHOWERR=false;
-  L.stream=stream;L.track=stream.getVideoTracks()[0];
-  const vv=$('lvid');vv.srcObject=stream;try{await vv.play()}catch(e){}
-  tip(t('tAim'));
-  L.track.addEventListener('ended',()=>{if(L.run&&!L.done){L.run=false;tip(T(t('camBusy')),'warn');$('lRetry').classList.remove('hide');showNat()}});
-  L.run=true;L.t0=Date.now();liveLoop();
-  if(!LOW)setTimeout(()=>{if(L.run&&!L.done)ocrLoop()},7000);      // OCR angka hanya di HP kuat
-  setTimeout(()=>{if(L.run&&!L.done)showNat()},6000);                // jalur cadangan selalu muncul
-  try{const cap=L.track.getCapabilities?L.track.getCapabilities():{};
-    if(cap.focusMode&&cap.focusMode.indexOf('continuous')>-1)await L.track.applyConstraints({advanced:[{focusMode:'continuous'}]});
-    $('lTorch').classList.toggle('hide',!cap.torch);
-    if(cap.zoom&&cap.zoom.max>cap.zoom.min){const z=$('lZoom');z.min=cap.zoom.min;z.max=Math.min(cap.zoom.max,cap.zoom.min*6);z.step=cap.zoom.step||0.1;
-      const v0=Math.min(+z.max,Math.max(+cap.zoom.min,1.5));z.value=v0;await L.track.applyConstraints({advanced:[{zoom:v0}]});z.classList.remove('hide')}}
-  catch(e){}}
-
-/* ----- Satu putaran baca barcode (beban menyesuaikan kecepatan HP) ----- */
-async function tick2(){
-  const v=$('lvid');if(L.busy||L.done||!v.videoWidth)return;L.busy=true;
-  const T0=performance.now();
-  try{
-    const sec=(Date.now()-L.t0)/1000;L.n++;
-    if(sec>1.5&&!$('lAI').disabled){const ph=Math.floor(sec/3)%3;
-      tip(ph===0?t('bcRead'):ph===1?t('tH1'):(SET.aiReady?t('tAiHint'):t('tH2')),ph>0?'warn':'')}
-    if(sec>3&&Date.now()-L.rf>6000){L.rf=Date.now();refocus()}
-    if(!L.aiTried&&SET.aiReady&&sec>(LOW?8:10)){L.aiTried=true;$('lAI').click()}
-    const det=await getDet(),slow=EMA>230,useNat=!!det&&NFAIL<3;
-    if(sec>3&&!useNat&&!window.ZXing){tip(T(m('engine')),'warn');showNat()}
-    let tx='';
-    if(useNat){
-      tx=await nat(det,v);
-      if(!tx&&!L.done&&L.n%2===0)tx=await nat(det,prep(v,{box:1,W:(slow||LOW)?900:1280,flt:L.n%4===0,cv:cv1}))}
-    if(!tx&&!L.done&&window.ZXing&&(!useNat||L.n%(slow?4:LOW?3:2)===0)){
-      const D=[0,-4,4,0,-8,8],i=ZI++;
-      tx=zx(prep(v,{box:1,W:(slow||LOW)?720:960,deg:D[i%6],rot:i%6===5,cv:cv2}),i%2===1)}
-    if(tx&&!L.done)liveOk(tx)
-  }catch(e){}
-  const dt=performance.now()-T0;EMA=EMA?EMA*.7+dt*.3:dt;
-  L.busy=false}
-function loop2(){if(!L.run)return;liveTick().then(()=>{if(L.run)L.timer=setTimeout(loop2,(LOW||EMA>200)?90:40)})}
-
-/* ----- Foto dari kamera bawaan HP: diperkecil saat dimuat (aman untuk 50 MP / RAM kecil) ----- */
-async function loadScaled(file,w){
-  try{if(window.createImageBitmap)return await createImageBitmap(file,{resizeWidth:w,resizeQuality:'medium'})}catch(e){}
-  return await new Promise((ok,no)=>{const u=URL.createObjectURL(file),i=new Image();
-    i.onload=()=>{ok(i);setTimeout(()=>URL.revokeObjectURL(u),60000)};i.onerror=no;i.src=u})}
-compress=async function(file,max,q){
-  if(!file)return null;
-  max=max||SET.imgMax;q=q||SET.imgQ/100;
-  try{const im=await loadScaled(file,max);
-    const W=im.width||im.naturalWidth,H=im.height||im.naturalHeight,k=Math.min(1,max/Math.max(W,H));
-    const c=document.createElement('canvas');c.width=Math.max(1,Math.round(W*k));c.height=Math.max(1,Math.round(H*k));
-    c.getContext('2d').drawImage(im,0,0,c.width,c.height);if(im.close)im.close();
-    return c.toDataURL('image/jpeg',q)}catch(e){return null}};
-
-async function deep2(src){
-  const det=await getDet();let tx='';
-  if(det){tx=await nat(det,src);if(tx)return tx;
-    const V=LOW?[{W:1600},{W:1600,flt:1},{W:1600,deg:-5},{W:1600,deg:5}]
-               :[{W:1800},{W:1800,flt:1},{W:1800,deg:-5},{W:1800,deg:5},{W:1800,rot:1},{W:2400,flt:1}];
-    for(const o of V){tx=await nat(det,prep(src,o));if(tx)return tx;await sleep(0)}}
-  try{await loadZx()}catch(e){}
-  if(window.ZXing){
-    const Z=[[{W:1400},0],[{W:1400,flt:1},1],[{W:1400,deg:-5},0],[{W:1400,deg:5},0],[{W:1400,rot:1},0],[{W:1000,flt:1},1]];
-    for(const a of Z){tx=zx(prep(src,a[0]),!!a[1]);if(tx)return tx;await sleep(10)}}
-  return ''}
-async function ocrPhoto(img){
-  if(!LOW)return await deepOcr(img);
-  try{const r=await ocrInv(prep(img,{W:1400,flt:true}));return r?r.v:''}catch(e){return ''}}
-
-$('sf').onchange=async function(){const f=$('sf').files[0];$('sf').value='';if(!f)return;toast(t('readBar'));
-  try{const img=await loadScaled(f,2000);LASTIMG=img;
-    toast(t('bcRead'));let tx=await deep2(img);
-    if(!tx){toast(t('ocrRead'));tx=await ocrPhoto(img)}
-    if(!tx&&SET.aiReady){toast(t('aiReading'));tx=await aiOnly(img)}
-    if(tx){$(sTarget).value=tx;if(navigator.vibrate)navigator.vibrate([60,40,60]);beep();toast(t('invRead',tx))}
-    else{$('msg').style.display='none';$('sresT').textContent=t('sresMsg',t('pFull'));$('sresA').classList.toggle('hide',!SET.aiReady);$('sresA').disabled=false;$('sres').classList.remove('hide')}
-  }catch(e){toast(t('photoFail'),1)}};
-
-/* ----- Pasang ----- */
-openLive=open2;liveTick=tick2;liveLoop=loop2;
-document.querySelectorAll('.sc').forEach(b=>b.addEventListener('click',()=>{RN=0}));
-$('lRetry').addEventListener('click',()=>{RN=0});
-$('lX').addEventListener('click',()=>{clearTimeout(RT);OPN++;SHOWERR=false});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&SHOWERR&&!hidden()&&!L.run&&!L.done)open2(sTarget)});
-})();
-</script>
 <style>
 /* ===== INPUT SUARA NO INVOICE ===== */
 .nrow .okb.mic{padding:0 14px;background:linear-gradient(180deg,#3d9be8,#1f5fb8);box-shadow:0 5px 0 #124a96}
@@ -1986,250 +1749,53 @@ label[for="f2"],#c2,#p2{display:none!important}
 #tblWrap th:nth-child(14),#tblWrap td:nth-child(14){display:none}
 .row2:has(#sSer){display:none}
 </style>
+
+
 <script>
-/* ===== SCANNER V3: ringan, stabil, tombol Back aman ===== */
+/* =====================================================================
+   SCANNER V5 - cepat, ringan, logika berurutan
+   URUTAN: 1) BarcodeDetector bawaan Chrome (paling cepat, tanpa unduhan)
+           2) bila tidak ada/rusak -> ZXing-wasm (satu mesin saja)
+           3) bila wasm gagal dimuat -> ZXing-js
+           4) cadangan: IA (otomatis setelah 12 detik, bila diaktifkan admin)
+   Tombol "Pakai kamera HP" HANYA muncul bila kamera error / pemindai gagal dimuat / setelah 30 detik.
+   Hanya nomor berformat INV + angka yang diterima. Ubah pick() bila format berubah.
+   ===================================================================== */
 (function(){
-const UA=navigator.userAgent;
-const INAPP3=/; wv\)|FBAN|FBAV|Instagram|Line\/|MicroMessenger|TikTok|Snapchat/i.test(UA);
-const ALTB3=/MiuiBrowser|SamsungBrowser|OPR\/|UCBrowser|HuaweiBrowser|HeyTapBrowser|VivoBrowser|PhoenixBrowser/i.test(UA);
+const CPU=navigator.hardwareConcurrency||4,MEM=navigator.deviceMemory||4,LOW=(MEM<=2||CPU<=4);
+const INAPP=/; wv\)|FBAN|FBAV|Instagram|Line\/|MicroMessenger|TikTok|Snapchat/i.test(navigator.userAgent);
+const WV='3.1.6';
+const BASES=['https://cdn.jsdelivr.net/npm/zxing-wasm@'+WV+'/dist/','https://fastly.jsdelivr.net/npm/zxing-wasm@'+WV+'/dist/'];
+const FMT=['Code128','Code39','Code93','EAN13','EAN8','UPCA','UPCE','ITF','Codabar','QRCode','DataMatrix'];
+const O_LIVE={formats:FMT,tryHarder:false,tryRotate:true,tryInvert:false,maxNumberOfSymbols:3};
+const O_PHOTO={formats:FMT,tryHarder:true,tryRotate:true,tryInvert:false,maxNumberOfSymbols:4};
 const MS={
- prep:['Jika muncul kotak izin kamera, pilih "Izinkan saat mengunjungi situs".','If a camera permission box appears, choose "Allow while visiting the site".'],
- overlay:['Kotak izin kamera tertutup aplikasi lain di layar (balon/overlay). Tutup balon chat, tombol melayang, perekam layar atau filter layar. Mencoba otomatis... atau tekan Pakai kamera HP.','The camera permission box is covered by another app on screen (bubble/overlay). Close chat bubbles, floating buttons, screen recorders or screen filters. Retrying automatically... or tap Use phone camera.'],
+ aim:['Arahkan ke BARCODE invoice, dekatkan sampai memenuhi lebar kotak, tahan stabil. Ketuk layar untuk fokus.','Point at the invoice BARCODE, move closer until it fills the box width, hold steady. Tap the screen to focus.'],
+ hint1:['Belum terbaca. Atur jarak 10-20 cm, hindari pantulan lampu, atau nyalakan senter.','Not read yet. Keep 10-20 cm away, avoid glare, or turn on the torch.'],
+ hint2:['Masih sulit? Geser zoom, atau ketuk layar pada barcode untuk fokus ulang.','Still hard? Adjust the zoom, or tap the barcode to refocus.'],
+ engine:['Pemindai belum siap (cek internet). Tekan Pakai kamera HP.','The scanner is not ready (check internet). Tap Use phone camera.'],
+ overlay:['Kotak izin kamera tertutup balon/overlay layar. Tutup balon chat, tombol melayang, perekam layar atau filter layar. Mencoba otomatis... atau tekan Pakai kamera HP.','The permission box is covered by an overlay. Close chat bubbles, floating buttons, screen recorders or filters. Retrying... or tap Use phone camera.'],
  dismissed:['Izin kamera belum dipilih. Tekan Coba lagi, lalu pilih Izinkan.','Camera permission was not chosen. Tap Try again, then choose Allow.'],
- denied:['Kamera DIBLOKIR untuk situs ini. Ketuk ikon gembok/pengaturan di kiri kolom alamat > Izin > Kamera > Izinkan, lalu muat ulang halaman. Atau tekan Pakai kamera HP.','The camera is BLOCKED for this site. Tap the lock/settings icon left of the address bar > Permissions > Camera > Allow, then reload. Or tap Use phone camera.'],
- inapp:['Halaman ini dibuka di dalam aplikasi lain, buka link di Chrome.','This page is open inside another app, open the link in Chrome.'],
- alt:['Anda memakai browser bawaan merk HP, disarankan memakai Chrome.','You are using the phone-brand browser, Chrome is recommended.'],
- engine:['Pemindai belum siap (cek internet). Tekan Pakai kamera HP.','The scanner is not ready (check internet). Tap Use phone camera.']
+ denied:['Kamera DIBLOKIR untuk situs ini. Ketuk ikon gembok di kiri kolom alamat > Izin > Kamera > Izinkan, lalu muat ulang. Atau tekan Pakai kamera HP.','Camera is BLOCKED for this site. Tap the lock icon left of the address bar > Permissions > Camera > Allow, then reload. Or tap Use phone camera.'],
+ inapp:['Halaman ini dibuka di dalam aplikasi lain. Buka link di Chrome, atau tekan Pakai kamera HP.','This page is open inside another app. Open the link in Chrome, or tap Use phone camera.']
 };
 const m=k=>MS[k][LANG==='en'?1:0];
-const T=s=>s+(INAPP3?' '+m('inapp'):'')+(ALTB3?' '+m('alt'):'');
-
-let RT=null,RN=0,NFAIL=0,EMA=0,ZI=0,OPN=0,SHOWERR=false,RESUME=false;
-const cv1=document.createElement('canvas'),cv2=document.createElement('canvas');
-const hidden=()=>$('lscan').classList.contains('hide');
 const pick=s=>{const x=cleanInv(s).match(/INV\d{6,14}/);return x?x[0]:''};
-const zx=(c,g)=>pick(zxRead(c,g));
+const hidden=()=>$('lscan').classList.contains('hide');
+
+const S={tok:0,eng:'',det:null,noNative:false,fails:0,ema:0,n:0,ph:0,busy:false,zi:0,t0:0,rn:0,resume:false,setting:false};
+const cvA=document.createElement('canvas'),cvB=document.createElement('canvas'),cvW=document.createElement('canvas');
+try{cvW.getContext('2d',{willReadFrequently:true})}catch(e){}
+
 function showNat(pri){const b=$('lNative');b.classList.remove('hide');
   if(pri){b.classList.remove('gray');b.classList.add('pri')}else{b.classList.add('gray');b.classList.remove('pri')}}
-
-/* ----- ZXing dengan 2 sumber unduhan ----- */
-function lz(){if(window.ZXing)return Promise.resolve();if(ZXP)return ZXP;
-  const urls=['https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js','https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js'];
-  ZXP=(async()=>{
-    for(const u of urls){
-      try{await new Promise((ok,no)=>{const s=document.createElement('script');s.src=u;s.onload=ok;s.onerror=()=>{s.remove();no(new Error('x'))};document.head.appendChild(s)});
-        if(window.ZXing)return}catch(e){}}
-    ZXP=null;throw new Error('zxing')})();
-  return ZXP}
-
-/* ----- OCR live DIMATIKAN (penyebab HP tertutup sendiri). OCR hanya untuk foto, 1 worker saja. ----- */
-ocrLoop=async function(){};
-loadOcr=function(){if(OCRP)return OCRP;
-  OCRP=(async()=>{
-    if(!window.Tesseract)await new Promise((ok,no)=>{const s=document.createElement('script');
-      s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';s.onload=ok;s.onerror=()=>no(new Error('tesseract'));document.head.appendChild(s)});
-    const tries=[{langPath:'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0_best_int'},{},{cacheMethod:'none'}];
-    let w=null,err=null;
-    for(const o of tries){try{w=await Tesseract.createWorker('eng',1,o);break}catch(e){err=e}}
-    if(!w)throw err||new Error('ocr');
-    try{await w.setParameters({tessedit_char_whitelist:'INV0123456789',tessedit_pageseg_mode:'11',user_defined_dpi:'300'})}catch(e){}
-    OCRW=[w];return OCRW})().catch(e=>{OCRP=null;OCRW=[];throw e});
-  return OCRP};
-
-async function nat(det,src){
-  try{const r=await det.detect(src);NFAIL=0;for(const b of r){const v=pick(b.rawValue);if(v)return v}}
-  catch(e){NFAIL++}
-  return ''}
-detectInv=async function(src){const det=await getDet();return det?await nat(det,src):''};
-zxInv=function(c,g){return zx(c,g)};
-
-function pauseCam(){L.run=false;clearTimeout(L.timer);
+function halt(){L.run=false;clearTimeout(L.timer);
   try{if(L.stream)L.stream.getTracks().forEach(x=>x.stop())}catch(e){}
   L.stream=null;L.track=null}
 
-/* ----- Gagal membuka kamera ----- */
-async function failCam(e,dt){
-  const n=(e&&e.name)||'';
-  SHOWERR=true;$('lRetry').classList.remove('hide');$('lTorch').classList.add('hide');showNat(true);
-  let st='?';try{st=(await navigator.permissions.query({name:'camera'})).state}catch(x){}
-  const dg=' ['+(n||'?')+'|'+st+'|'+Math.round(dt)+'ms]';
-  if(n==='NotAllowedError'||n==='SecurityError'){
-    if(st==='denied'){tip(T(m('denied'))+dg,'warn');return}
-    if(st==='granted'){tip(T(t('camSys'))+dg,'warn');return}
-    if(dt<900){
-      tip(T(m('overlay'))+dg,'warn');
-      if(RN<8&&!hidden()){RN++;clearTimeout(RT);RT=setTimeout(()=>{if(!hidden()&&!L.run)open3(sTarget)},2500)}
-      return}
-    tip(T(m('dismissed'))+dg,'warn');return}
-  let k;
-  if(n==='NotFoundError'||n==='OverconstrainedError')k=t('camNF');
-  else if(n==='NotReadableError'||n==='AbortError')k=t('camBusy');
-  else k=t('camFail');
-  tip(T(k)+dg,'warn')}
-camErr=function(e){failCam(e,9999)};
-
-/* ----- Membuka kamera (1280x720, ringan untuk semua HP) ----- */
-async function open3(id){
-  const my=++OPN;clearTimeout(RT);sTarget=id;
-  pauseCam();
-  L.done=false;L.busy=false;L.n=0;L.rf=Date.now();L.oc={};L.oi=0;L.ocrMiss=0;L.ocrFail=false;L.aiTried=false;L.t0=Date.now();
-  NFAIL=0;EMA=0;ZI=0;SHOWERR=false;RESUME=false;
-  lz().catch(()=>{});getDet();
-  L.torch=false;setTorchTxt();
-  $('lscan').classList.remove('hide');
-  ['lRetry','lNative','lTorch','lZoom'].forEach(i=>$(i).classList.add('hide'));
-  $('lNative').classList.remove('pri');
-  $('lAI').classList.toggle('hide',!SET.aiReady);$('lAI').disabled=false;
-  tip(t('camOn'));
-  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){
-    tip(T(t('camNoSup')),'warn');$('lRetry').classList.remove('hide');showNat(true);return}
-  let st='?';try{st=(await navigator.permissions.query({name:'camera'})).state}catch(e){}
-  if(my!==OPN)return;
-  if(st==='denied'){failCam({name:'NotAllowedError'},0);return}
-  if(st==='prompt')tip(m('prep'));
-  const tries=[
-    {video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:24}},audio:false},
-    {video:{facingMode:{ideal:'environment'}},audio:false},
-    {video:true,audio:false}];
-  const t0=Date.now();let err=null,stream=null;
-  for(const c of tries){
-    try{stream=await navigator.mediaDevices.getUserMedia(c);break}
-    catch(e){err=e;const n=e&&e.name;if(n==='NotAllowedError'||n==='SecurityError'||n==='NotFoundError')break}}
-  if(my!==OPN){if(stream)stream.getTracks().forEach(x=>x.stop());return}
-  if(!stream){await failCam(err,Date.now()-t0);return}
-  if(hidden()){stream.getTracks().forEach(x=>x.stop());return}
-  RN=0;SHOWERR=false;
-  L.stream=stream;L.track=stream.getVideoTracks()[0];
-  const vv=$('lvid');vv.srcObject=stream;try{await vv.play()}catch(e){}
-  tip(t('tAim'));
-  L.track.addEventListener('ended',()=>{if(L.run&&!L.done&&my===OPN){L.run=false;tip(T(t('camBusy')),'warn');$('lRetry').classList.remove('hide');showNat(true)}});
-  L.run=true;L.t0=Date.now();liveLoop();
-  setTimeout(()=>{if(L.run&&!L.done&&my===OPN)showNat(false)},12000);   // cadangan baru muncul setelah 12 detik
-  try{const cap=L.track.getCapabilities?L.track.getCapabilities():{};
-    if(cap.focusMode&&cap.focusMode.indexOf('continuous')>-1)await L.track.applyConstraints({advanced:[{focusMode:'continuous'}]});
-    $('lTorch').classList.toggle('hide',!cap.torch);
-    if(cap.zoom&&cap.zoom.max>cap.zoom.min){const z=$('lZoom');z.min=cap.zoom.min;z.max=Math.min(cap.zoom.max,cap.zoom.min*6);z.step=cap.zoom.step||0.1;
-      const v0=Math.min(+z.max,Math.max(+cap.zoom.min,1.5));z.value=v0;await L.track.applyConstraints({advanced:[{zoom:v0}]});z.classList.remove('hide')}}
-  catch(e){}}
-
-/* ----- Satu putaran baca barcode ----- */
-async function tick3(){
-  const v=$('lvid');if(L.busy||L.done||document.hidden||!v.videoWidth)return;L.busy=true;
-  const T0=performance.now();
-  try{
-    const sec=(Date.now()-L.t0)/1000;L.n++;
-    if(sec>1.5&&!$('lAI').disabled){const ph=Math.floor(sec/3)%3;
-      tip(ph===0?t('bcRead'):ph===1?t('tH1'):(SET.aiReady?t('tAiHint'):t('tH2')),ph>0?'warn':'')}
-    if(sec>3&&Date.now()-L.rf>6000){L.rf=Date.now();refocus()}
-    if(!L.aiTried&&SET.aiReady&&sec>10){L.aiTried=true;$('lAI').click()}
-    const det=await getDet(),useNat=!!det&&NFAIL<3;
-    if(!useNat&&!window.ZXing&&L.n%25===0)lz().catch(()=>{});
-    if(sec>4&&!useNat&&!window.ZXing){tip(T(m('engine')),'warn');showNat(true)}
-    let tx='';
-    if(useNat){
-      tx=await nat(det,v);
-      if(!tx&&!L.done&&L.n%2===0)tx=await nat(det,prep(v,{box:1,W:900,flt:L.n%4===0,cv:cv1}))}
-    const every=useNat?3:(EMA>230?2:1);
-    if(!tx&&!L.done&&window.ZXing&&L.n%every===0){
-      const D=[0,-4,4,0,-8,8],i=ZI++;
-      tx=zx(prep(v,{box:1,W:800,deg:D[i%6],rot:i%6===5,cv:cv2}),i%2===1)}
-    if(tx&&!L.done)liveOk(tx)
-  }catch(e){}
-  const dt=performance.now()-T0;EMA=EMA?EMA*.7+dt*.3:dt;
-  L.busy=false}
-function loop3(){if(!L.run)return;liveTick().then(()=>{if(L.run)L.timer=setTimeout(loop3,EMA>200?120:80)})}
-
-/* ----- Foto dari kamera bawaan HP: diperkecil saat dimuat ----- */
-async function loadScaled(file,w){
-  try{if(window.createImageBitmap)return await createImageBitmap(file,{resizeWidth:w,resizeQuality:'medium'})}catch(e){}
-  return await new Promise((ok,no)=>{const u=URL.createObjectURL(file),i=new Image();
-    i.onload=()=>{ok(i);setTimeout(()=>URL.revokeObjectURL(u),60000)};i.onerror=no;i.src=u})}
-compress=async function(file,max,q){
-  if(!file)return null;
-  max=max||SET.imgMax;q=q||SET.imgQ/100;
-  try{const im=await loadScaled(file,max);
-    const W=im.width||im.naturalWidth,H=im.height||im.naturalHeight,k=Math.min(1,max/Math.max(W,H));
-    const c=document.createElement('canvas');c.width=Math.max(1,Math.round(W*k));c.height=Math.max(1,Math.round(H*k));
-    c.getContext('2d').drawImage(im,0,0,c.width,c.height);if(im.close)im.close();
-    return c.toDataURL('image/jpeg',q)}catch(e){return null}};
-async function deep3(src){
-  const det=await getDet();let tx='';
-  if(det){tx=await nat(det,src);if(tx)return tx;
-    const V=[{W:1600},{W:1600,flt:1},{W:1600,deg:-5},{W:1600,deg:5}];
-    for(const o of V){tx=await nat(det,prep(src,o));if(tx)return tx;await sleep(0)}}
-  try{await lz()}catch(e){}
-  if(window.ZXing){
-    const Z=[[{W:1400},0],[{W:1400,flt:1},1],[{W:1400,deg:-5},0],[{W:1400,deg:5},0],[{W:1400,rot:1},0]];
-    for(const a of Z){tx=zx(prep(src,a[0]),!!a[1]);if(tx)return tx;await sleep(10)}}
-  return ''}
-async function ocrPhoto(img){try{const r=await ocrInv(prep(img,{W:1400,flt:true}));return r?r.v:''}catch(e){return ''}}
-$('sf').onchange=async function(){const f=$('sf').files[0];$('sf').value='';if(!f)return;toast(t('readBar'));
-  try{const img=await loadScaled(f,2000);LASTIMG=img;
-    toast(t('bcRead'));let tx=await deep3(img);
-    if(!tx){toast(t('ocrRead'));tx=await ocrPhoto(img)}
-    if(!tx&&SET.aiReady){toast(t('aiReading'));tx=await aiOnly(img)}
-    if(tx){$(sTarget).value=tx;if(navigator.vibrate)navigator.vibrate([60,40,60]);beep();toast(t('invRead',tx))}
-    else{$('msg').style.display='none';$('sresT').textContent=t('sresMsg',t('pFull'));$('sresA').classList.toggle('hide',!SET.aiReady);$('sresA').disabled=false;$('sres').classList.remove('hide')}
-  }catch(e){toast(t('photoFail'),1)}};
-
-/* ----- FOTO DRIVER dihilangkan dari validasi ----- */
-missing=function(){const x=[];if(!jasa)x.push(t('lJasa'));if(!$('drv').value.trim())x.push(t('lDrv'));
-  if($('tlp').value.replace(/\D/g,'').length<SET.minTlp)x.push(t('tlpMin',SET.minTlp));
-  if(!$('inv1').value.trim())x.push(t('lI1'));
-  const iv=['inv1','inv2','inv3'].map(i=>$(i).value.trim().toLowerCase()).filter(Boolean);if(new Set(iv).size<iv.length)x.push(t('invSame'));
-  if(!PH.f1)x.push(t('lF1'));
-  if(!$('koli').value)x.push(t('lKoli'));else if(SET.maxKoli>0&&+$('koli').value>SET.maxKoli)x.push(t('koliMax',SET.maxKoli));
-  return x};
-
-/* ----- Pasang ----- */
-openLive=open3;liveTick=tick3;liveLoop=loop3;
-document.querySelectorAll('.sc').forEach(b=>b.addEventListener('click',()=>{RN=0}));
-$('lRetry').addEventListener('click',()=>{RN=0});
-$('lX').addEventListener('click',()=>{clearTimeout(RT);OPN++;SHOWERR=false;RESUME=false});
-
-/* Kamera dilepas saat aplikasi ke latar belakang, dibuka lagi saat kembali */
-document.addEventListener('visibilitychange',()=>{
-  if(document.hidden){if(!hidden()&&L.run){RESUME=true;pauseCam()}}
-  else{if(!hidden()&&(RESUME||(SHOWERR&&!L.run&&!L.done))){RESUME=false;open3(sTarget)}}});
-addEventListener('pagehide',()=>{try{pauseCam()}catch(e){}});
-
-/* ----- Tombol / gestur BACK: menutup scanner/panel dulu, tidak langsung keluar aplikasi ----- */
-let lastBack=0;
-const keep=()=>{try{history.pushState({azko:1},'',location.href)}catch(e){}};
-const isOpen=id=>!$(id).classList.contains('hide');
-window.addEventListener('popstate',function(e){
-  e.stopImmediatePropagation();
-  if(isOpen('lscan')){stopLive();OPN++;clearTimeout(RT);keep();return}
-  if(isOpen('cam')){stopCam();keep();return}
-  if(isOpen('sres')){$('sres').classList.add('hide');keep();return}
-  if(isOpen('dlg')){$('dlg').classList.add('hide');DEL=null;keep();return}
-  if(isOpen('pnl')){pClose();keep();return}
-  if(SD.classList.contains('open')){sideClose();keep();return}
-  if(FS){setFs(false);keep();return}
-  const n=Date.now();
-  if(n-lastBack>2000){lastBack=n;keep();toast(LANG==='en'?'Press Back again to exit.':'Tekan Back sekali lagi untuk keluar.');return}
-  history.back()},true);
-})();
-</script>
-<script>
-/* ===== SCANNER V4: ZXing-wasm (pembaca barcode cepat) + PWA ===== */
-(function(){
-const MEM=navigator.deviceMemory||4,CPU=navigator.hardwareConcurrency||4;
-const LOW=(MEM<=2||CPU<=4);
-const WV='3.1.6';
-const BASES=['https://cdn.jsdelivr.net/npm/zxing-wasm@'+WV+'/dist/','https://fastly.jsdelivr.net/npm/zxing-wasm@'+WV+'/dist/'];
-const OPTS={formats:['Code128','Code39','Code93','EAN13','EAN8','UPCA','UPCE','ITF','Codabar','QRCode','DataMatrix'],tryHarder:true,tryRotate:true,tryInvert:false,maxNumberOfSymbols:4};
-const MSG={
- engine:['Pemindai belum siap (cek internet). Tekan Pakai kamera HP.','The scanner is not ready (check internet). Tap Use phone camera.']};
-const m=k=>MSG[k][LANG==='en'?1:0];
-let WP=null,WOK=false,NFAIL=0,EMA=0,ZI=0,WI=0;
-const pick=s=>{const x=cleanInv(s).match(/INV\d{6,14}/);return x?x[0]:''};
-const cv1=document.createElement('canvas'),cv2=document.createElement('canvas'),cvw=document.createElement('canvas');
-try{cvw.getContext('2d',{willReadFrequently:true})}catch(e){}
-function showNat(){const b=$('lNative');b.classList.remove('hide','gray');b.classList.add('pri')}
-
-/* ----- Muat ZXing-wasm (2 alamat unduhan). Bila gagal, scanner tetap memakai BarcodeDetector / ZXing-js. ----- */
-function loadScript(u){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=u;s.onload=ok;s.onerror=()=>{s.remove();no(new Error('x'))};document.head.appendChild(s)})}
+/* ---------- Mesin pembaca ---------- */
+let WP=null,WOK=false;
+const loadScript=u=>new Promise((ok,no)=>{const s=document.createElement('script');s.src=u;s.onload=ok;s.onerror=()=>{s.remove();no(new Error('x'))};document.head.appendChild(s)});
 function lw(){
   if(WOK)return Promise.resolve();if(WP)return WP;
   WP=(async()=>{
@@ -2242,80 +1808,210 @@ function lw(){
       catch(e){try{window.ZXingWASM.purgeZXingModule()}catch(z){}}}
     WP=null;throw new Error('wasm')})();
   return WP}
-const lwTimeout=ms=>Promise.race([lw(),new Promise((_,no)=>setTimeout(()=>no(new Error('timeout')),ms))]);
+const lwT=ms=>Promise.race([lw(),new Promise((_,no)=>setTimeout(()=>no(new Error('timeout')),ms))]);
 
-/* ----- Baca satu gambar/frame dengan ZXing-wasm ----- */
-async function wread(src,o){
-  const c=prep(src,Object.assign({cv:cvw},o));
+/** Pilih mesin SATU kali (tidak memuat semuanya sekaligus -> ringan). */
+async function setup(my){
+  if(S.setting||(S.eng&&S.eng!=='none'))return;
+  S.setting=true;
+  try{
+    const det=S.noNative?null:await getDet();
+    if(my!==S.tok)return;
+    if(det){S.det=det;S.eng='native';return}
+    try{await lwT(10000);S.eng='wasm';return}catch(e){}
+    try{await loadZx();if(window.ZXing){S.eng='js';return}}catch(e){}
+    S.eng='none'
+  }finally{S.setting=false}}
+
+async function natRead(src){
+  try{const r=await S.det.detect(src);S.fails=0;for(const b of r){const v=pick(b.rawValue);if(v)return v}}
+  catch(e){if(++S.fails>=3){S.noNative=true;S.eng='';S.det=null;setup(S.tok)}}
+  return ''}
+async function wasmRead(src,o,opt){
+  const c=prep(src,Object.assign({cv:cvW},o));
   const id=c.getContext('2d').getImageData(0,0,c.width,c.height);
-  const r=await window.ZXingWASM.readBarcodes(id,OPTS);
+  const r=await window.ZXingWASM.readBarcodes(id,opt||O_LIVE);
   for(const x of r){const v=pick(x.text);if(v)return v}
   return ''}
-async function nat(det,src){
-  try{const r=await det.detect(src);NFAIL=0;for(const b of r){const v=pick(b.rawValue);if(v)return v}}
-  catch(e){NFAIL++}
-  return ''}
 
-/* ----- Satu putaran baca barcode di kamera langsung: BarcodeDetector -> ZXing-wasm -> ZXing-js ----- */
-async function tick4(){
-  const v=$('lvid');if(L.busy||L.done||document.hidden||!v.videoWidth)return;L.busy=true;
-  const T0=performance.now();
+/* ---------- Satu putaran baca ---------- */
+async function tick(){
+  const v=$('lvid');
+  if(S.busy||L.done||!L.run||document.hidden||v.readyState<2||!v.videoWidth)return;
+  S.busy=true;
   try{
-    const sec=(Date.now()-L.t0)/1000;L.n++;
-    if(!WOK&&!WP&&L.n%25===1)lw().catch(()=>{});
-    if(sec>1.5&&!$('lAI').disabled){const ph=Math.floor(sec/3)%3;
-      tip(ph===0?t('bcRead'):ph===1?t('tH1'):(SET.aiReady?t('tAiHint'):t('tH2')),ph>0?'warn':'')}
-    if(sec>3&&Date.now()-L.rf>6000){L.rf=Date.now();refocus()}
-    if(!L.aiTried&&SET.aiReady&&sec>10){L.aiTried=true;$('lAI').click()}
-    const det=await getDet(),useNat=!!det&&NFAIL<3,slow=EMA>230,W=(slow||LOW)?720:960;
-    let tx='';
-    if(useNat){
-      tx=await nat(det,v);
-      if(!tx&&!L.done&&L.n%2===0)tx=await nat(det,prep(v,{box:1,W:900,flt:L.n%4===0,cv:cv1}))}
-    if(!tx&&!L.done&&WOK&&(!useNat||L.n%2===1)){
-      const D=[0,0,-4,4],i=WI++;
-      tx=await wread(v,{box:1,W:W,flt:i%3===2,deg:D[i%4]})}
-    if(!tx&&!L.done&&!WOK&&window.ZXing&&(!useNat||L.n%3===0)){
-      const D=[0,-4,4,0,-8,8],i=ZI++;
-      tx=pick(zxRead(prep(v,{box:1,W:800,deg:D[i%6],rot:i%6===5,cv:cv2}),i%2===1))}
-    if(!tx&&!useNat&&!WOK&&!window.ZXing&&sec>4){tip(m('engine'),'warn');showNat()}
-    if(tx&&!L.done)liveOk(tx)
+    const i=S.n++;let tx='';
+    if(S.eng==='native'){
+      const k=i%4;
+      tx=(k%2===0)?await natRead(v)
+        :await natRead(prep(v,k===1?{box:1,W:1000,flt:1,cv:cvA}:{box:1,W:640,cv:cvA}))}
+    else if(S.eng==='wasm'){
+      const W=LOW?640:800,V=[{box:1,W:W},{box:1,W:W,flt:1},{W:LOW?720:960}];
+      tx=await wasmRead(v,V[i%3])}
+    else if(S.eng==='js'){
+      const D=[0,-4,4,0,-8,8],j=S.zi++;
+      tx=pick(zxRead(prep(v,{box:1,W:800,deg:D[j%6],cv:cvB}),j%2===1))}
+    if(tx&&!L.done){liveOk(tx);return}
+    const sec=(Date.now()-S.t0)/1000;
+    if((S.eng==='none'||(!S.eng&&sec>8))&&!L.done){tip(m('engine'),'warn');showNat(true)}
+    if(sec>6&&S.ph<1){S.ph=1;tip(m('hint1'),'warn')}
+    if(sec>14&&S.ph<2){S.ph=2;tip(SET.aiReady?t('tAiHint'):m('hint2'),'warn')}
+    if(sec>12&&SET.aiReady&&!L.aiTried){L.aiTried=true;$('lAI').click()}
+    if(sec>30&&S.ph<3){S.ph=3;showNat(false)}
   }catch(e){}
-  const dt=performance.now()-T0;EMA=EMA?EMA*.7+dt*.3:dt;
-  L.busy=false}
-function loop4(){if(!L.run)return;liveTick().then(()=>{if(L.run)L.timer=setTimeout(loop4,EMA>200?120:80)})}
+  finally{S.busy=false}}
+function loop(my){
+  if(!L.run||L.done||my!==S.tok)return;
+  const t0=performance.now();
+  tick().catch(()=>{}).then(()=>{
+    const dt=performance.now()-t0;S.ema=S.ema?S.ema*.7+dt*.3:dt;
+    if(L.run&&!L.done&&my===S.tok)L.timer=setTimeout(()=>loop(my),S.ema>180?120:(S.eng==='native'?40:70))})}
 
-/* ----- Foto dari kamera bawaan HP (cadangan): ZXing-wasm lebih dulu ----- */
+/* ---------- Kamera ---------- */
+async function failCam(e,dt,my){
+  if(my!==S.tok)return;
+  const n=(e&&e.name)||'';
+  $('lRetry').classList.remove('hide');$('lTorch').classList.add('hide');showNat(true);
+  let st='?';try{st=(await navigator.permissions.query({name:'camera'})).state}catch(x){}
+  let msg;
+  if(INAPP)msg=m('inapp');
+  else if(n==='NotAllowedError'||n==='SecurityError'){
+    if(st==='denied')msg=m('denied');
+    else if(st==='granted')msg=t('camSys');
+    else if(dt<900){msg=m('overlay');
+      if(S.rn<3&&!hidden()){S.rn++;setTimeout(()=>{if(!hidden()&&!L.run&&S.tok===my)open5(sTarget)},2500)}}
+    else msg=m('dismissed')}
+  else if(n==='NotFoundError'||n==='OverconstrainedError')msg=t('camNF');
+  else if(n==='NotReadableError'||n==='AbortError')msg=t('camBusy');
+  else msg=t('camFail');
+  tip(msg,'warn')}
+camErr=function(e){failCam(e,9999,S.tok)};
+
+async function open5(id){
+  const my=++S.tok;sTarget=id;halt();
+  if(S.eng==='none')S.eng='';
+  S.n=0;S.ph=0;S.busy=false;S.t0=Date.now();S.resume=false;S.ema=0;
+  L.done=false;L.busy=false;L.aiTried=false;L.ocrFail=false;L.torch=false;L.t0=Date.now();
+  setTorchTxt();
+  $('lscan').classList.remove('hide');
+  ['lRetry','lNative','lTorch','lZoom'].forEach(i=>$(i).classList.add('hide'));
+  $('lNative').classList.remove('pri');
+  $('lAI').classList.toggle('hide',!SET.aiReady);$('lAI').disabled=false;
+  tip(t('camOn'));
+  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){
+    tip(t('camNoSup'),'warn');$('lRetry').classList.remove('hide');showNat(true);return}
+  setup(my);   // siapkan mesin sambil kamera dibuka (paralel)
+  const tries=[
+    {video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:24}},audio:false},
+    {video:{facingMode:{ideal:'environment'}},audio:false},
+    {video:true,audio:false}];
+  const t0=Date.now();let err=null,stream=null;
+  for(const c of tries){
+    try{stream=await navigator.mediaDevices.getUserMedia(c);break}
+    catch(e){err=e;const n=e&&e.name;if(n==='NotAllowedError'||n==='SecurityError'||n==='NotFoundError')break}}
+  if(my!==S.tok){if(stream)stream.getTracks().forEach(x=>x.stop());return}
+  if(!stream){failCam(err,Date.now()-t0,my);return}
+  if(hidden()){stream.getTracks().forEach(x=>x.stop());return}
+  S.rn=0;
+  L.stream=stream;L.track=stream.getVideoTracks()[0];
+  const vv=$('lvid');vv.srcObject=stream;vv.play().catch(()=>{});
+  tip(m('aim'));
+  L.track.addEventListener('ended',()=>{if(L.run&&!L.done&&my===S.tok){L.run=false;tip(t('camBusy'),'warn');$('lRetry').classList.remove('hide');showNat(true)}});
+  L.run=true;S.t0=Date.now();loop(my);
+  try{const cap=L.track.getCapabilities?L.track.getCapabilities():{};
+    if(cap.focusMode&&cap.focusMode.indexOf('continuous')>-1)L.track.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{});
+    $('lTorch').classList.toggle('hide',!cap.torch);
+    if(cap.zoom&&cap.zoom.max>cap.zoom.min){const z=$('lZoom');z.min=cap.zoom.min;z.max=Math.min(cap.zoom.max,cap.zoom.min*6);z.step=cap.zoom.step||0.1;z.value=cap.zoom.min;z.classList.remove('hide')}}
+  catch(e){}}
+openLive=open5;
+
+document.querySelectorAll('.sc').forEach(b=>b.addEventListener('click',()=>{S.rn=0}));
+$('lRetry').addEventListener('click',()=>{S.rn=0});
+$('lX').addEventListener('click',()=>{S.tok++;S.resume=false});
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){if(!hidden()&&L.run){S.resume=true;halt()}}
+  else if(!hidden()&&S.resume){S.resume=false;open5(sTarget)}});
+addEventListener('pagehide',()=>{try{halt()}catch(e){}});
+
+/* ---------- Foto dari kamera bawaan HP (cadangan) ---------- */
 async function scaled(file,w){
   try{if(window.createImageBitmap)return await createImageBitmap(file,{resizeWidth:w,resizeQuality:'medium'})}catch(e){}
   return await new Promise((ok,no)=>{const u=URL.createObjectURL(file),i=new Image();
     i.onload=()=>{ok(i);setTimeout(()=>URL.revokeObjectURL(u),60000)};i.onerror=no;i.src=u})}
-async function wphoto(img){
-  const V=[{W:1600},{W:1600,flt:1},{W:1600,deg:-5},{W:1600,deg:5},{W:2000},{W:1100,flt:1}];
-  for(const o of V){const tx=await wread(img,o);if(tx)return tx;await new Promise(r=>setTimeout(r,0))}
+compress=async function(file,max,q){
+  if(!file)return null;max=max||SET.imgMax;q=q||SET.imgQ/100;
+  try{const im=await scaled(file,max);
+    const W=im.width||im.naturalWidth,H=im.height||im.naturalHeight,k=Math.min(1,max/Math.max(W,H));
+    const c=document.createElement('canvas');c.width=Math.max(1,Math.round(W*k));c.height=Math.max(1,Math.round(H*k));
+    c.getContext('2d').drawImage(im,0,0,c.width,c.height);if(im.close)im.close();
+    return c.toDataURL('image/jpeg',q)}catch(e){return null}};
+async function readPhoto(img){
+  let tx='';
+  const det=S.noNative?null:await getDet();
+  if(det){
+    for(const o of [{W:1600},{W:1600,flt:1},{W:1000},{W:1600,deg:-5},{W:1600,deg:5}]){
+      try{const r=await det.detect(prep(img,Object.assign({cv:cvA},o)));for(const b of r){const v=pick(b.rawValue);if(v)return v}}catch(e){}
+      await sleep(0)}}
+  try{await lwT(8000)}catch(e){}
+  if(WOK){
+    for(const o of [{W:1600},{W:1600,flt:1},{W:2000},{W:1100,flt:1}]){
+      tx=await wasmRead(img,o,O_PHOTO).catch(()=>'');if(tx)return tx;await sleep(0)}}
+  else{
+    try{await loadZx()}catch(e){}
+    if(window.ZXing){
+      for(const a of [[{W:1400},0],[{W:1400,flt:1},1],[{W:1400,deg:-5},0],[{W:1400,deg:5},0]]){
+        tx=pick(zxRead(prep(img,Object.assign({cv:cvB},a[0])),!!a[1]));if(tx)return tx;await sleep(0)}}}
   return ''}
-async function lightOcr(img){try{const r=await ocrInv(prep(img,{W:1400,flt:true}));return r?r.v:''}catch(e){return ''}}
+async function ocrPhoto(img){try{const r=await ocrInv(prep(img,{W:1400,flt:true}));return r?r.v:''}catch(e){return ''}}
+/* OCR ringan: 1 worker, hanya untuk foto (tidak pernah berjalan di kamera langsung) */
+loadOcr=function(){if(OCRP)return OCRP;
+  OCRP=(async()=>{
+    if(!window.Tesseract)await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
+    const tries=[{langPath:'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0_best_int'},{},{cacheMethod:'none'}];
+    let w=null,err=null;
+    for(const o of tries){try{w=await Tesseract.createWorker('eng',1,o);break}catch(e){err=e}}
+    if(!w)throw err||new Error('ocr');
+    try{await w.setParameters({tessedit_char_whitelist:'INV0123456789',tessedit_pageseg_mode:'11',user_defined_dpi:'300'})}catch(e){}
+    OCRW=[w];return OCRW})().catch(e=>{OCRP=null;OCRW=[];throw e});
+  return OCRP};
 $('sf').onchange=async function(){
   const f=$('sf').files[0];$('sf').value='';if(!f)return;toast(t('readBar'));
   try{
     const img=await scaled(f,2000);LASTIMG=img;
-    toast(t('bcRead'));
-    let tx='';
-    try{await lwTimeout(8000)}catch(e){}
-    if(WOK)tx=await wphoto(img);
-    if(!tx)tx=await deepBarcode(img);
-    if(!tx){toast(t('ocrRead'));tx=LOW?await lightOcr(img):await deepOcr(img)}
+    let tx=await readPhoto(img);
+    if(!tx){toast(t('ocrRead'));tx=await ocrPhoto(img)}
     if(!tx&&SET.aiReady){toast(t('aiReading'));tx=await aiOnly(img)}
     if(tx){$(sTarget).value=tx;if(navigator.vibrate)navigator.vibrate([60,40,60]);beep();toast(t('invRead',tx))}
     else{$('msg').style.display='none';$('sresT').textContent=t('sresMsg',t('pFull'));$('sresA').classList.toggle('hide',!SET.aiReady);$('sresA').disabled=false;$('sres').classList.remove('hide')}
   }catch(e){toast(t('photoFail'),1)}};
 
-/* ----- Pasang ----- */
-liveTick=tick4;liveLoop=loop4;
-document.querySelectorAll('.sc').forEach(b=>b.addEventListener('click',()=>{lw().catch(()=>{})}));
-if(!LOW)setTimeout(()=>{lw().catch(()=>{})},3000);   // HP kuat: siapkan pembaca lebih awal
+/* ---------- FOTO DRIVER tidak divalidasi ---------- */
+missing=function(){const x=[];if(!jasa)x.push(t('lJasa'));if(!$('drv').value.trim())x.push(t('lDrv'));
+  if($('tlp').value.replace(/\D/g,'').length<SET.minTlp)x.push(t('tlpMin',SET.minTlp));
+  if(!$('inv1').value.trim())x.push(t('lI1'));
+  const iv=['inv1','inv2','inv3'].map(i=>$(i).value.trim().toLowerCase()).filter(Boolean);if(new Set(iv).size<iv.length)x.push(t('invSame'));
+  if(!PH.f1)x.push(t('lF1'));
+  if(!$('koli').value)x.push(t('lKoli'));else if(SET.maxKoli>0&&+$('koli').value>SET.maxKoli)x.push(t('koliMax',SET.maxKoli));
+  return x};
 
-/* ----- PWA: manifest + service worker ----- */
+/* ---------- Tombol / gestur BACK: tutup scanner/panel dulu, tidak langsung keluar ---------- */
+let lastBack=0;
+const keep=()=>{try{history.pushState({azko:1},'',location.href)}catch(e){}};
+const isOpen=id=>!$(id).classList.contains('hide');
+window.addEventListener('popstate',function(e){
+  e.stopImmediatePropagation();
+  if(isOpen('lscan')){stopLive();S.tok++;keep();return}
+  if(isOpen('cam')){stopCam();keep();return}
+  if(isOpen('sres')){$('sres').classList.add('hide');keep();return}
+  if(isOpen('dlg')){$('dlg').classList.add('hide');DEL=null;keep();return}
+  if(isOpen('pnl')){pClose();keep();return}
+  if(SD.classList.contains('open')){sideClose();keep();return}
+  if(FS){setFs(false);keep();return}
+  const n=Date.now();
+  if(n-lastBack>2000){lastBack=n;keep();toast(LANG==='en'?'Press Back again to exit.':'Tekan Back sekali lagi untuk keluar.');return}
+  history.back()},true);
+
+/* ---------- PWA ---------- */
 try{
   if(!document.querySelector('link[rel="manifest"]')){const l=document.createElement('link');l.rel='manifest';l.href='manifest.json';document.head.appendChild(l)}
   if(!document.querySelector('meta[name="theme-color"]')){const x=document.createElement('meta');x.name='theme-color';x.content='#0d2238';document.head.appendChild(x)}
