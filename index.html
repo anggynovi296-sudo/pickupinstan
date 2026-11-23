@@ -1753,11 +1753,15 @@ label[for="f2"],#c2,#p2{display:none!important}
 
 
 <script>
-/* ===== SCANNER V7 (FINAL) =====
-   Lebih sensitif: 8 variasi potongan area x 3 tingkat kontras (tanpa ctx.filter, jalan juga di iPhone),
-   resolusi kamera dinaikkan otomatis, zoom otomatis menyapu, fokus ulang tiap 2,5 detik,
-   mesin ganda (BarcodeDetector bawaan + ZXing-wasm, cadangan ZXing-js), barcode berisi 9 angka tanpa "INV" juga diterima.
-   */
+/* ===== SCANNER V8 =====
+   GANTI SELURUH BLOK <script> "SCANNER V7 (FINAL)" dengan blok ini (V7 dihapus utuh).
+   Perbaikan utama:
+   1) OCR angka "INV..." dihidupkan lagi saat kamera live (di V7 OCR live tidak pernah jalan).
+      Menangani angka terpisah spasi, mis. "INV40503114 4" -> INV405031144. Wajib 9 angka.
+   2) Fokus tidak lagi diganggu: hilang refocus tiap 2,5 dtk, auto-zoom menyapu, dan ganti resolusi di tengah jalan.
+   3) FOTO RESOLUSI PENUH (ImageCapture.takePhoto) otomatis di detik ke-4 & ke-11, atau tombol "Foto & baca".
+      Foto diam jauh lebih tajam dari frame video -> barcode rapat/pendek/miring terbaca.
+   4) Lebih banyak variasi sudut (+-3,7,11 derajat) dan penajaman (sharpen) untuk foto diam. */
 (function(){
 const LOW=((navigator.deviceMemory||4)<=2||(navigator.hardwareConcurrency||4)<=4);
 const INAPP=/; wv\)|FBAN|FBAV|Instagram|Line\/|MicroMessenger|TikTok|Snapchat/i.test(navigator.userAgent);
@@ -1765,32 +1769,34 @@ const WV='3.1.6',BASES=['https://cdn.jsdelivr.net/npm/zxing-wasm@'+WV+'/dist/','
 const FMT=['Code128','Code39','Code93','EAN13','EAN8','UPCA','UPCE','ITF','Codabar','QRCode','DataMatrix'];
 const O_FAST={formats:FMT,tryHarder:false,tryRotate:true,tryInvert:true,maxNumberOfSymbols:4};
 const O_HARD={formats:FMT,tryHarder:true,tryRotate:true,tryInvert:true,maxNumberOfSymbols:4};
+const DIG=9;   /* jumlah angka invoice untuk hasil OCR. Ubah bila format invoice berubah */
 const MS={
- aim:['Arahkan ke BARCODE invoice sampai memenuhi lebar kotak (jarak sekitar 10-20 cm), tahan stabil. Ketuk layar untuk fokus.','Point at the invoice BARCODE until it fills the box width (about 10-20 cm), hold steady. Tap the screen to focus.'],
- hint1:['Belum terbaca. Dekatkan sampai barcode memenuhi lebar kotak, hindari pantulan lampu, atau nyalakan senter.','Not read yet. Move closer until the barcode fills the box width, avoid glare, or turn on the torch.'],
- hint2:['Masih sulit? Jauhkan sedikit bila buram, ketuk layar pada barcode untuk fokus ulang, atau tekan Pakai kamera HP.','Still hard? Move back a little if blurry, tap the barcode to refocus, or tap Use phone camera.'],
- engine:['Pemindai belum siap (cek internet). Tekan Pakai kamera HP.','The scanner is not ready (check internet). Tap Use phone camera.'],
+ aim:['Arahkan ke ANGKA INV + BARCODE sekaligus (jarak 15-25 cm), tahan stabil. Ketuk layar untuk fokus.','Aim at the INV number + BARCODE together (15-25 cm), hold steady. Tap the screen to focus.'],
+ hint1:['Belum terbaca. Jangan terlalu dekat (buram). Mundur sedikit, hindari pantulan lampu, atau tekan Foto & baca.','Not read yet. Do not get too close (blurry). Move back a bit, avoid glare, or tap Photo & read.'],
+ hint2:['Masih sulit? Ketuk layar pada barcode untuk fokus, lalu tekan Foto & baca (resolusi penuh).','Still hard? Tap the barcode to focus, then tap Photo & read (full resolution).'],
+ engine:['Pemindai belum siap (cek internet). Tekan Foto & baca atau Pakai kamera HP.','The scanner is not ready (check internet). Tap Photo & read or Use phone camera.'],
  overlay:['Kotak izin kamera tertutup overlay layar. Tutup balon chat/tombol melayang/perekam layar. Mencoba otomatis...','The permission box is covered by an overlay. Close chat bubbles/floating buttons/recorders. Retrying...'],
  dismissed:['Izin kamera belum dipilih. Tekan Coba lagi, lalu pilih Izinkan.','Camera permission was not chosen. Tap Try again, then choose Allow.'],
  denied:['Kamera DIBLOKIR untuk situs ini. Ketuk ikon gembok di kiri kolom alamat > Izin > Kamera > Izinkan, lalu muat ulang.','Camera is BLOCKED for this site. Tap the lock icon left of the address bar > Permissions > Camera > Allow, then reload.'],
- inapp:['Halaman ini dibuka di dalam aplikasi lain. Buka link di Chrome, atau tekan Pakai kamera HP.','This page is open inside another app. Open the link in Chrome, or tap Use phone camera.']};
+ inapp:['Halaman ini dibuka di dalam aplikasi lain. Buka link di Chrome, atau tekan Pakai kamera HP.','This page is open inside another app. Open the link in Chrome, or tap Use phone camera.'],
+ snap:['Foto & baca','Photo & read'],
+ snapping:['Mengambil foto resolusi penuh... tahan HP stabil.','Taking a full-resolution photo... hold steady.'],
+ stillFail:['Foto belum terbaca. Pastikan angka INV dan barcode tajam & utuh, mundur sedikit, lalu tekan Foto & baca lagi.','Photo not read. Make sure the INV number and barcode are sharp and complete, move back a bit, then tap Photo & read again.']};
 const m=k=>MS[k][LANG==='en'?1:0];
 const hidden=()=>$('lscan').classList.contains('hide');
-const S={tok:0,det:null,noNat:false,fails:0,ema:0,n:0,ph:0,busy:false,zi:0,t0:0,rn:0,resume:false,wFail:false,jsOn:false,wk:{},up:0,zs:0,zUser:false,zc:null,rf:0};
-const cvA=document.createElement('canvas'),cvB=document.createElement('canvas'),cvW=document.createElement('canvas');
-try{cvW.getContext('2d',{willReadFrequently:true})}catch(e){}
+const S={tok:0,det:null,noNat:false,fails:0,ema:0,n:0,ph:0,busy:false,zi:0,t0:0,rn:0,resume:false,wFail:false,jsOn:false,wk:{},ic:null,still:0,stillBusy:false,ocrOn:false,oc:{}};
+const cvW=document.createElement('canvas'),cvO=document.createElement('canvas'),cvP=document.createElement('canvas');
 
-/* barcode invoice: "INV"+angka diterima langsung. 9 angka murni (tanpa INV) diterima setelah terbaca 2x (atau langsung bila now=1). SKU 8 angka diabaikan. */
+/* barcode: "INV"+angka diterima langsung. 9 angka murni (tanpa INV) diterima setelah 2x baca (atau langsung bila now=1). SKU 8 angka diabaikan. */
 function pick(s,now){const c=cleanInv(s);const x=c.match(/INV\d{6,14}/);if(x)return x[0];
   if(/^\d{9}$/.test(c)){S.wk[c]=(S.wk[c]||0)+1;return(now||S.wk[c]>=2)?'INV'+c:''}
   return ''}
-
 function showNat(pri){const b=$('lNative');b.classList.remove('hide');b.classList.toggle('pri',!!pri);b.classList.toggle('gray',!pri)}
-function halt(){L.run=false;clearTimeout(L.timer);try{if(L.stream)L.stream.getTracks().forEach(x=>x.stop())}catch(e){}L.stream=null;L.track=null}
-
-/* ---- mesin ---- */
-let WP=null,WOK=false;
+function halt(){L.run=false;clearTimeout(L.timer);try{if(L.stream)L.stream.getTracks().forEach(x=>x.stop())}catch(e){}L.stream=null;L.track=null;S.ic=null}
 const loadScript=u=>new Promise((ok,no)=>{const s=document.createElement('script');s.src=u;s.onload=ok;s.onerror=()=>{s.remove();no(new Error('x'))};document.head.appendChild(s)});
+
+/* ---- ZXing-wasm ---- */
+let WP=null,WOK=false;
 function lw(){if(WOK)return Promise.resolve();if(WP)return WP;
   WP=(async()=>{for(const b of BASES){try{
       if(!window.ZXingWASM)await loadScript(b+'iife/reader/index.js');
@@ -1801,8 +1807,8 @@ function lw(){if(WOK)return Promise.resolve();if(WP)return WP;
   WP.catch(()=>{S.wFail=true;WP=null});return WP}
 const lwT=ms=>Promise.race([lw(),new Promise((_,no)=>setTimeout(()=>no(new Error('timeout')),ms))]);
 
-/* ---- pengolahan gambar tanpa ctx.filter (aman di iPhone): abu-abu + auto-level + kontras ---- */
-function enhance(d,mode){const n=d.length/4,hist=new Uint32Array(256);
+/* ---- pengolahan gambar (tanpa ctx.filter, aman di iPhone): abu-abu + auto-level; mode 2 kontras kuat; mode 3 + sharpen ---- */
+function enhance(d,mode,w,h){const n=d.length/4,hist=new Uint32Array(256);
   for(let i=0;i<d.length;i+=4){const g=(d[i]*77+d[i+1]*151+d[i+2]*28)>>8;d[i]=g;hist[g]++}
   let lo=0,hi=255,a=0;const cut=n*.01;
   for(;lo<255;lo++){a+=hist[lo];if(a>cut)break}
@@ -1810,9 +1816,12 @@ function enhance(d,mode){const n=d.length/4,hist=new Uint32Array(256);
   if(hi-lo<20)hi=Math.min(255,lo+20);
   const s=255/(hi-lo),lut=new Uint8Array(256);
   for(let i=0;i<256;i++){let v=(i-lo)*s;v=v<0?0:v>255?255:v;if(mode===2){v=((v/255-.5)*1.9+.5)*255;v=v<0?0:v>255?255:v}lut[i]=v}
-  for(let i=0;i<d.length;i+=4){const v=lut[d[i]];d[i]=d[i+1]=d[i+2]=v}}
-/* potongan area: x,y,w,h = pecahan frame; W = sisi terpanjang; mode 0 asli / 1 auto-level / 2 kontras kuat; deg = miring kecil */
-const W1=()=>LOW?1100:2000,W2=()=>LOW?1400:2800;
+  for(let i=0;i<d.length;i+=4){const v=lut[d[i]];d[i]=d[i+1]=d[i+2]=v}
+  if(mode===3){const g=new Uint8Array(n);for(let i=0;i<n;i++)g[i]=d[i*4];
+    for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const p=y*w+x,b=(g[p-1]+g[p+1]+g[p-w]+g[p+w]+g[p]*4)>>3;
+      let v=g[p]+1.6*(g[p]-b);v=v<0?0:v>255?255:v;const q=p*4;d[q]=d[q+1]=d[q+2]=v}}}
+/* potongan area: x,y,w,h = pecahan frame; W = sisi terpanjang (px); mode 0..3; deg = miring kecil */
+const W1=LOW?1100:2000,W2=LOW?1400:2800;
 const VAR=[
  {x:0,y:0,w:1,h:1,W:W1,mode:0},
  {x:0,y:.2,w:1,h:.6,W:W1,mode:1},
@@ -1820,19 +1829,25 @@ const VAR=[
  {x:0,y:.2,w:1,h:.6,W:W1,mode:2,deg:-4},
  {x:.15,y:.25,w:.7,h:.5,W:W2,mode:1},
  {x:0,y:.2,w:1,h:.6,W:W1,mode:2,deg:4},
+ {x:0,y:.2,w:1,h:.6,W:W1,mode:1,deg:-8},
+ {x:0,y:.2,w:1,h:.6,W:W1,mode:1,deg:8},
  {x:0,y:0,w:1,h:1,W:W1,mode:2},
  {x:.25,y:0,w:.5,h:1,W:W1,mode:1}];
-const PV=VAR.map(v=>Object.assign({},v,{W:()=>3000}));
-function grab(src,V,tocv){
+const PV=[{x:0,y:0,w:1,h:1,W:3000,mode:0},{x:0,y:.15,w:1,h:.7,W:3000,mode:3},{x:0,y:.15,w:1,h:.7,W:3000,mode:1},
+ {x:0,y:.15,w:1,h:.7,W:3000,mode:3,deg:-3},{x:0,y:.15,w:1,h:.7,W:3000,mode:3,deg:3},
+ {x:0,y:.15,w:1,h:.7,W:3000,mode:2,deg:-7},{x:0,y:.15,w:1,h:.7,W:3000,mode:2,deg:7},
+ {x:0,y:.15,w:1,h:.7,W:3000,mode:1,deg:-11},{x:0,y:.15,w:1,h:.7,W:3000,mode:1,deg:11},
+ {x:.1,y:.25,w:.8,h:.5,W:3000,mode:3},{x:0,y:0,w:1,h:1,W:3000,mode:2}];
+function grab(src,V,cv,keep){
   const sw=src.videoWidth||src.naturalWidth||src.width,sh=src.videoHeight||src.naturalHeight||src.height;
   const cx=Math.round(sw*V.x),cy=Math.round(sh*V.y),cw=Math.max(1,Math.round(sw*V.w)),ch=Math.max(1,Math.round(sh*V.h));
-  const k=Math.min(1.8,V.W()/Math.max(cw,ch)),w=Math.max(1,Math.round(cw*k)),h=Math.max(1,Math.round(ch*k));
-  cvW.width=w;cvW.height=h;const x=cvW.getContext('2d',{willReadFrequently:true});
+  const k=Math.min(1.8,V.W/Math.max(cw,ch)),w=Math.max(1,Math.round(cw*k)),h=Math.max(1,Math.round(ch*k));
+  cv.width=w;cv.height=h;const x=cv.getContext('2d',{willReadFrequently:true});
   x.fillStyle='#fff';x.fillRect(0,0,w,h);
   if(V.deg){x.save();x.translate(w/2,h/2);x.rotate(V.deg*Math.PI/180);x.drawImage(src,cx,cy,cw,ch,-w/2,-h/2,w,h);x.restore()}
   else x.drawImage(src,cx,cy,cw,ch,0,0,w,h);
   const id=x.getImageData(0,0,w,h);
-  if(V.mode){enhance(id.data,V.mode);if(tocv)x.putImageData(id,0,0)}
+  if(V.mode){enhance(id.data,V.mode,w,h);if(keep)x.putImageData(id,0,0)}
   return id}
 async function natRead(src,now){
   try{const r=await S.det.detect(src);S.fails=0;for(const b of r){const v=pick(b.rawValue,now);if(v)return v}}
@@ -1843,15 +1858,84 @@ async function wasmRead(id,opt,now){
   for(const x of r){const v=pick(x.text,now);if(v)return v}
   return ''}
 
-/* ---- zoom otomatis & resolusi ---- */
-function setZoom(r){const z=S.zc;if(!z||!L.track)return;
-  const val=Math.min(z.max,Math.max(z.min,z.min*r));
-  L.track.applyConstraints({advanced:[{zoom:val}]}).catch(()=>{});
-  try{$('lZoom').value=val}catch(e){}}
-function hiRes(){if(LOW||!L.track||!L.track.applyConstraints)return;
-  L.track.applyConstraints({width:{ideal:2560},height:{ideal:1440}}).catch(()=>{})}
+/* ---- OCR angka invoice ---- */
+loadOcr=function(){if(OCRP)return OCRP;
+  OCRP=(async()=>{if(!window.Tesseract)await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
+    let w=null,err=null;
+    for(const o of [{langPath:'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0_best_int'},{},{cacheMethod:'none'}]){try{w=await Tesseract.createWorker('eng',1,o);break}catch(e){err=e}}
+    if(!w)throw err||new Error('ocr');
+    try{await w.setParameters({tessedit_char_whitelist:'INV0123456789',tessedit_pageseg_mode:'11',user_defined_dpi:'300'})}catch(e){}
+    OCRW=[w];return OCRW})().catch(e=>{OCRP=null;OCRW=[];throw e});return OCRP};
+/* Cari "INV"+angka. Angka yang terpisah spasi/baris ("INV40503114" + "4") disambung sampai DIG angka. Hanya hasil DIG angka yang dipakai. */
+parseOcr=function(d){
+  const ln=String(d.text||'').split(/\n/).map(l=>l.replace(/[^A-Za-z0-9]/g,'').toUpperCase()).filter(Boolean),good=[];
+  for(let i=0;i<ln.length;i++){const mm=ln[i].match(/[IL1]?NV(\d{4,12})/);if(!mm)continue;
+    let dg=mm[1];
+    for(let j=i+1;j<ln.length&&dg.length<DIG&&/^\d{1,3}$/.test(ln[j]);j++)dg+=ln[j];
+    if(dg.length>DIG&&mm[1].length===DIG)dg=mm[1];
+    if(dg.length===DIG)good.push(dg)}
+  if(!good.length)return null;
+  const dg=good[0];let conf=0;
+  ocrWords(d).forEach(w=>{const s=String(w.text||'').replace(/\s/g,'');if(s.indexOf(dg.slice(0,5))>-1)conf=Math.max(conf,w.confidence||0)});
+  return {v:'INV'+dg,n:DIG,conf:conf}};
+const OV=[{x:0,y:.1,w:1,h:.8,W:1000,mode:1},{x:.05,y:.15,w:.9,h:.7,W:1400,mode:1},{x:0,y:0,w:1,h:1,W:1200,mode:2}];
+/* OCR live: terima bila 2x sama atau keyakinan >=90 */
+async function ocrLive(my){
+  if(S.ocrOn)return;S.ocrOn=true;
+  try{await loadOcr()}catch(e){L.ocrFail=true;S.ocrOn=false;return}
+  let i=0,fail=0;const w=OCRW[0];
+  while(L.run&&!L.done&&my===S.tok){
+    const v=$('lvid');if(!v.videoWidth||document.hidden){await sleep(150);continue}
+    try{grab(v,OV[i++%OV.length],cvO,1);
+      const r=await w.recognize(cvO,{},OCR_OUT),p=parseOcr((r&&r.data)||{});
+      if(!L.run||L.done||my!==S.tok)break;
+      if(p){S.oc[p.v]=(S.oc[p.v]||0)+1;if(S.oc[p.v]>=2||p.conf>=90){liveOk(p.v);break}}
+      fail=0}
+    catch(e){if(++fail>=3){L.ocrFail=true;break}}}
+  S.ocrOn=false}
+async function ocrImg(img,alive){
+  try{await loadOcr()}catch(e){return ''}
+  const seen={};
+  for(const V of [{x:0,y:.1,w:1,h:.8,W:1600,mode:1},{x:0,y:.1,w:1,h:.8,W:2400,mode:1},{x:0,y:0,w:1,h:1,W:2000,mode:2}]){
+    if(!alive())return '';
+    grab(img,V,cvP,1);
+    const r=await OCRW[0].recognize(cvP,{},OCR_OUT).catch(()=>null),p=r&&parseOcr(r.data||{});
+    if(p){seen[p.v]=(seen[p.v]||0)+1;if(seen[p.v]>=2||p.conf>=85)return p.v}}
+  return ''}
+async function readBar(img,alive){
+  S.wk={};let tx='';const det=await getDet().catch(()=>null);
+  if(det)for(const V of PV){if(!alive())return '';
+    try{const r=await det.detect(grab(img,V,cvP));for(const b of r){const v=pick(b.rawValue,1);if(v)return v}}catch(e){}await sleep(0)}
+  try{await lwT(9000)}catch(e){}
+  if(WOK){for(const V of PV){if(!alive())return '';tx=await wasmRead(grab(img,V,cvP),O_HARD,1).catch(()=>'');if(tx)return tx;await sleep(0)}}
+  else{try{await loadZx()}catch(e){}
+    if(window.ZXing)for(const V of PV){if(!alive())return '';grab(img,V,cvP,1);tx=pick(zxRead(cvP,V.mode===2),1);if(tx)return tx;await sleep(0)}}
+  return ''}
 
-/* ---- satu putaran baca ---- */
+/* ---- FOTO DIAM resolusi penuh (jauh lebih tajam dari frame video) ---- */
+async function scaled(file,w){
+  try{if(window.createImageBitmap)return await createImageBitmap(file,{resizeWidth:w,resizeQuality:'high'})}catch(e){}
+  return await new Promise((ok,no)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{ok(i);setTimeout(()=>URL.revokeObjectURL(u),60000)};i.onerror=no;i.src=u})}
+async function stillRead(my){
+  if(S.stillBusy)return '';S.stillBusy=true;
+  const alive=()=>my===S.tok&&!L.done&&!hidden();
+  try{let img=null;
+    if(S.ic){try{img=await scaled(await S.ic.takePhoto(),3000)}catch(e){S.ic=null}}
+    if(!img){const v=$('lvid');if(v.videoWidth)img=v}
+    if(!img||!alive())return '';
+    let tx=await readBar(img,alive);
+    if(!tx&&alive())tx=await ocrImg(img,alive);
+    if(img.close){try{img.close()}catch(e){}}
+    return alive()?tx:''}
+  catch(e){return ''}finally{S.stillBusy=false}}
+const bs=document.createElement('button');bs.type='button';bs.id='lSnap';bs.className='btn hide';
+$('lNative').insertAdjacentElement('beforebegin',bs);
+bs.onclick=async()=>{if(L.done||!L.run)return;bs.disabled=true;tip(m('snapping'));
+  const tx=await stillRead(S.tok);bs.disabled=false;
+  if(tx&&!L.done)liveOk(tx);else if(!L.done)tip(m('stillFail'),'warn')};
+const autoStill=()=>{const my=S.tok;stillRead(my).then(tx=>{if(tx&&!L.done&&my===S.tok)liveOk(tx)})};
+
+/* ---- satu putaran baca live ---- */
 async function tick(){
   const v=$('lvid');
   if(S.busy||L.done||!L.run||document.hidden||v.readyState<2||!v.videoWidth)return;
@@ -1861,18 +1945,17 @@ async function tick(){
     if(!WOK&&!WP&&!S.wFail&&(!LOW||!nat||sec>1.5))lw().catch(()=>{});
     if(S.wFail&&!S.jsOn){S.jsOn=true;loadZx().catch(()=>{})}
     const k=S.zi++,V=VAR[k%VAR.length];
-    if(nat){tx=await natRead(v);if(!tx&&i%2===1)tx=await natRead(grab(v,V))}
-    if(!tx&&WOK&&(!nat||i%2===0||sec>2))tx=await wasmRead(grab(v,V),(k%2===1||sec>3)?O_HARD:O_FAST);
-    if(!tx&&!WOK&&window.ZXing&&(!nat||i%3===2)){grab(v,V,1);tx=pick(zxRead(cvW,k%2===1))}
+    if(nat){tx=await natRead(v);if(!tx&&i%2===1)tx=await natRead(grab(v,V,cvW))}
+    if(!tx&&WOK&&(!nat||i%2===0||sec>2))tx=await wasmRead(grab(v,V,cvW),(k%2===1||sec>3)?O_HARD:O_FAST);
+    if(!tx&&!WOK&&window.ZXing&&(!nat||i%3===2)){grab(v,V,cvW,1);tx=pick(zxRead(cvW,k%2===1))}
     if(tx&&!L.done){liveOk(tx);return}
-    if(sec>4&&!S.up){S.up=1;hiRes()}
-    const Z=[5,9,13,17],ZR=[1.5,2.2,1.2,3];
-    if(S.zc&&!S.zUser&&S.zs<Z.length&&sec>Z[S.zs]){setZoom(ZR[S.zs]);S.zs++}
-    if(sec-S.rf>2.5){S.rf=sec;refocus()}
+    if(sec>2&&!S.ocrOn&&!L.ocrFail)ocrLive(S.tok);
+    if(sec>4&&S.still<1){S.still=1;autoStill()}
+    if(sec>11&&S.still<2){S.still=2;autoStill()}
     if(!nat&&!WOK&&!window.ZXing&&sec>7){tip(m('engine'),'warn');showNat(true)}
     if(sec>6&&S.ph<1){S.ph=1;tip(m('hint1'),'warn')}
     if(sec>14&&S.ph<2){S.ph=2;tip(SET.aiReady?t('tAiHint'):m('hint2'),'warn')}
-    if(sec>12&&SET.aiReady&&!L.aiTried){L.aiTried=true;$('lAI').click()}
+    if(sec>14&&SET.aiReady&&!L.aiTried){L.aiTried=true;$('lAI').click()}
     if(sec>20&&S.ph<3){S.ph=3;showNat(false)}
   }catch(e){}finally{S.busy=false}}
 function loop(my){
@@ -1890,22 +1973,24 @@ async function failCam(e,dt,my){
   if(INAPP)msg=m('inapp');
   else if(n==='NotAllowedError'||n==='SecurityError'){
     if(st==='denied')msg=m('denied');else if(st==='granted')msg=t('camSys');
-    else if(dt<900){msg=m('overlay');if(S.rn<3&&!hidden()){S.rn++;setTimeout(()=>{if(!hidden()&&!L.run&&S.tok===my)open7(sTarget)},2500)}}
+    else if(dt<900){msg=m('overlay');if(S.rn<3&&!hidden()){S.rn++;setTimeout(()=>{if(!hidden()&&!L.run&&S.tok===my)open8(sTarget)},2500)}}
     else msg=m('dismissed')}
   else if(n==='NotFoundError'||n==='OverconstrainedError')msg=t('camNF');
   else if(n==='NotReadableError'||n==='AbortError')msg=t('camBusy');
   else msg=t('camFail');
   tip(msg,'warn')}
 camErr=function(e){failCam(e,9999,S.tok)};
-async function open7(id){
+async function open8(id){
   const my=++S.tok;sTarget=id;halt();
-  S.n=0;S.ph=0;S.busy=false;S.t0=Date.now();S.resume=false;S.ema=0;S.zi=0;S.noNat=false;S.fails=0;S.wk={};S.up=0;S.zs=0;S.zUser=false;S.zc=null;S.rf=0;
+  S.n=0;S.ph=0;S.busy=false;S.t0=Date.now();S.resume=false;S.ema=0;S.zi=0;S.noNat=false;S.fails=0;S.wk={};S.still=0;S.stillBusy=false;S.ocrOn=false;S.oc={};
   L.done=false;L.busy=false;L.aiTried=false;L.ocrFail=false;L.torch=false;L.t0=Date.now();setTorchTxt();
   $('lscan').classList.remove('hide');
-  ['lRetry','lNative','lTorch','lZoom'].forEach(i=>$(i).classList.add('hide'));
-  $('lNative').classList.remove('pri');$('lAI').classList.toggle('hide',!SET.aiReady);$('lAI').disabled=false;tip(t('camOn'));
+  ['lRetry','lNative','lTorch','lZoom','lSnap'].forEach(i=>$(i).classList.add('hide'));
+  $('lNative').classList.remove('pri');$('lAI').classList.toggle('hide',!SET.aiReady);$('lAI').disabled=false;
+  bs.textContent=m('snap');bs.disabled=false;tip(t('camOn'));
   if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){tip(t('camNoSup'),'warn');$('lRetry').classList.remove('hide');showNat(true);return}
   getDet().then(d=>{if(my===S.tok)S.det=d}).catch(()=>{});
+  loadOcr().catch(()=>{});   /* siapkan pembaca angka sejak kamera dibuka */
   const hi=LOW?{width:{ideal:1280},height:{ideal:720}}:{width:{ideal:1920},height:{ideal:1080}};
   const tries=[{video:Object.assign({facingMode:{ideal:'environment'},frameRate:{ideal:30}},hi),audio:false},
     {video:{facingMode:{ideal:'environment'}},audio:false},{video:true,audio:false}];
@@ -1917,55 +2002,37 @@ async function open7(id){
   if(hidden()){stream.getTracks().forEach(x=>x.stop());return}
   S.rn=0;L.stream=stream;L.track=stream.getVideoTracks()[0];
   const vv=$('lvid');vv.srcObject=stream;vv.play().catch(()=>{});tip(m('aim'));
+  try{if(window.ImageCapture)S.ic=new ImageCapture(L.track)}catch(e){S.ic=null}
+  bs.classList.remove('hide');
   L.track.addEventListener('ended',()=>{if(L.run&&!L.done&&my===S.tok){L.run=false;tip(t('camBusy'),'warn');$('lRetry').classList.remove('hide');showNat(true)}});
   L.run=true;S.t0=Date.now();loop(my);
+  /* hanya fokus kontinu + zoom manual dari slider. TIDAK ada refocus/auto-zoom/ganti resolusi lagi (itu bikin gambar buram). */
   try{const cap=L.track.getCapabilities?L.track.getCapabilities():{};
     if(cap.focusMode&&cap.focusMode.indexOf('continuous')>-1)L.track.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{});
     $('lTorch').classList.toggle('hide',!cap.torch);
-    if(cap.zoom&&cap.zoom.max>cap.zoom.min){const z=$('lZoom');z.min=cap.zoom.min;z.max=Math.min(cap.zoom.max,cap.zoom.min*6);z.step=cap.zoom.step||0.1;z.value=cap.zoom.min;z.classList.remove('hide');S.zc={min:+cap.zoom.min,max:+z.max}}}catch(e){}}
-openLive=open7;
-$('lZoom').addEventListener('input',()=>{S.zUser=true});
+    if(cap.zoom&&cap.zoom.max>cap.zoom.min){const z=$('lZoom');z.min=cap.zoom.min;z.max=Math.min(cap.zoom.max,cap.zoom.min*6);z.step=cap.zoom.step||0.1;z.value=cap.zoom.min;z.classList.remove('hide')}}catch(e){}}
+openLive=open8;
 document.querySelectorAll('.sc').forEach(b=>b.addEventListener('click',()=>{S.rn=0}));
 $('lRetry').addEventListener('click',()=>{S.rn=0});
 $('lX').addEventListener('click',()=>{S.tok++;S.resume=false});
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){if(!hidden()&&L.run){S.resume=true;halt()}}
-  else if(!hidden()&&S.resume){S.resume=false;open7(sTarget)}});
+  else if(!hidden()&&S.resume){S.resume=false;open8(sTarget)}});
 addEventListener('pagehide',()=>{try{halt()}catch(e){}});
 
-/* ---- foto dari kamera bawaan HP (cadangan): resolusi tinggi + semua variasi ---- */
-async function scaled(file,w){
-  try{if(window.createImageBitmap)return await createImageBitmap(file,{resizeWidth:w,resizeQuality:'high'})}catch(e){}
-  return await new Promise((ok,no)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{ok(i);setTimeout(()=>URL.revokeObjectURL(u),60000)};i.onerror=no;i.src=u})}
+/* ---- foto dari kamera bawaan HP (cadangan): barcode -> OCR -> IA ---- */
 compress=async function(file,max,q){
   if(!file)return null;max=max||SET.imgMax;q=q||SET.imgQ/100;
   try{const im=await scaled(file,max),W=im.width||im.naturalWidth,H=im.height||im.naturalHeight,k=Math.min(1,max/Math.max(W,H));
     const c=document.createElement('canvas');c.width=Math.max(1,Math.round(W*k));c.height=Math.max(1,Math.round(H*k));
     c.getContext('2d').drawImage(im,0,0,c.width,c.height);if(im.close)im.close();return c.toDataURL('image/jpeg',q)}catch(e){return null}};
-async function readPhoto(img){
-  S.wk={};let tx='';const det=await getDet().catch(()=>null);
-  if(det)for(const V of PV){
-    try{const r=await det.detect(grab(img,V));for(const b of r){const v=pick(b.rawValue,1);if(v)return v}}catch(e){}await sleep(0)}
-  try{await lwT(9000)}catch(e){}
-  if(WOK){for(const V of PV){tx=await wasmRead(grab(img,V),O_HARD,1).catch(()=>'');if(tx)return tx;await sleep(0)}}
-  else{try{await loadZx()}catch(e){}
-    if(window.ZXing)for(const V of PV){grab(img,V,1);tx=pick(zxRead(cvW,V.mode===2),1);if(tx)return tx;await sleep(0)}}
-  return ''}
-async function ocrPhoto(img){try{const r=await ocrInv(prep(img,{W:1600,flt:true}));return r?r.v:''}catch(e){return ''}}
-loadOcr=function(){if(OCRP)return OCRP;
-  OCRP=(async()=>{if(!window.Tesseract)await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
-    let w=null,err=null;
-    for(const o of [{langPath:'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0_best_int'},{},{cacheMethod:'none'}]){try{w=await Tesseract.createWorker('eng',1,o);break}catch(e){err=e}}
-    if(!w)throw err||new Error('ocr');
-    try{await w.setParameters({tessedit_char_whitelist:'INV0123456789',tessedit_pageseg_mode:'11',user_defined_dpi:'300'})}catch(e){}
-    OCRW=[w];return OCRW})().catch(e=>{OCRP=null;OCRW=[];throw e});return OCRP};
 $('sf').onchange=async function(){
   const f=$('sf').files[0];$('sf').value='';if(!f)return;toast(t('readBar'));
-  try{const img=await scaled(f,3000);LASTIMG=img;
-    let tx=await readPhoto(img);
-    if(!tx){toast(t('ocrRead'));tx=await ocrPhoto(img)}
+  try{const img=await scaled(f,3000);LASTIMG=img;const yes=()=>true;
+    let tx=await readBar(img,yes);
+    if(!tx){toast(t('ocrRead'));tx=await ocrImg(img,yes)}
     if(!tx&&SET.aiReady){toast(t('aiReading'));tx=await aiOnly(img)}
-    if(tx){$(sTarget).value=tx;if(navigator.vibrate)navigator.vibrate([60,40,60]);beep();toast(t('invRead',tx))}
+    if(tx){$(sTarget).value=tx;$(sTarget).dispatchEvent(new Event('input',{bubbles:true}));if(navigator.vibrate)navigator.vibrate([60,40,60]);beep();toast(t('invRead',tx))}
     else{$('msg').style.display='none';$('sresT').textContent=t('sresMsg',t('pFull'));$('sresA').classList.toggle('hide',!SET.aiReady);$('sresA').disabled=false;$('sres').classList.remove('hide')}
   }catch(e){toast(t('photoFail'),1)}};
 
